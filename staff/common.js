@@ -82,7 +82,7 @@ var logoTemplate=document.createElement("template");logoTemplate.id="appLogoTemp
       if (action === 'withFailureHandler') return function (fn) { failure = fn; return runner; };
       return function () {
         var args = Array.prototype.slice.call(arguments);
-        var mutations = ['issueWalkInTicket','confirmReceptionDetails','addAidRentalForGuest','returnAidRentalForGuest','callTicketManually','admitToIce','exitWristbandAndFinalize','exitTicketAndFinalize','markConsentAsPaper'];
+        var mutations = ['sendTestLineNotification','issueTestReceptionTicket','issueWalkInTicket','confirmReceptionDetails','addAidRentalForGuest','returnAidRentalForGuest','callTicketManually','admitToIce','exitWristbandAndFinalize','exitTicketAndFinalize','markConsentAsPaper'];
         var key = action + JSON.stringify(args);
         var meta = operation;
         if (mutations.indexOf(action) !== -1 && !meta) {

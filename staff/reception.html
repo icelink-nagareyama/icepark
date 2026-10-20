@@ -10,7 +10,118 @@
     </div>
   </div><div id="operationBarMeta" class="operation-bar-meta" role="status">運営情報を取得しています</div>
 </section>
-<div class="app-shell"><div id="adminSidebar" class="sidebar"></div><div class="main-content"><div class="page-header"><div><h1 class="page-header-title">受付</h1><div class="page-header-sub">受付番号の検索、または新規受付の登録を行います</div></div><span class="chip" id="staffLabel">読み込み中...</span></div><script>var staffId=window.staffPortal.staffId;var sessionToken=window.staffPortal.sessionToken;var baseUrl=window.staffPortal.baseUrl;</script>      <div id="receptionErrorBox" class="msg-error" style="display:none;" role="alert"></div>
+<div class="app-shell"><div id="adminSidebar" class="sidebar"></div><div class="main-content"><div class="page-header"><div><h1 class="page-header-title">受付</h1><div class="page-header-sub">受付番号の検索、または新規受付の登録を行います</div></div><span class="chip" id="staffLabel">読み込み中...</span></div><script>var staffId=window.staffPortal.staffId;var sessionToken=window.staffPortal.sessionToken;var baseUrl=window.staffPortal.baseUrl;</script><section id="testReceptionPanel" class="card test-reception" hidden aria-labelledby="testReceptionTitle">
+<style>
+.test-reception[hidden],.test-reception [hidden]{display:none!important}.test-reception{border:1px solid #85cbe0;background:#f0faff}
+.test-reception .test-reception-fields{display:grid;grid-template-columns:minmax(0,2fr) repeat(2,minmax(0,1fr));gap:16px}
+.test-reception .test-reception-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:16px}
+.test-reception .btn{min-height:48px;display:inline-flex;align-items:center;justify-content:center;text-align:center}
+.test-reception .field input{width:100%;min-height:48px;box-sizing:border-box}.test-reception p{line-height:1.8}
+.test-reception-result{padding:16px;border:1px solid #b3dce7;border-radius:12px;background:#fff;margin-top:16px}
+.test-reception-number{font-size:40px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--brand-dark)}
+@media(max-width:600px){.test-reception .test-reception-fields{grid-template-columns:repeat(2,minmax(0,1fr))}.test-reception .field:first-child{grid-column:1/-1}.test-reception .test-reception-actions>.btn{width:100%}}
+</style>
+<div class="section-eyebrow">TEST MODE</div><h2 class="section-title" id="testReceptionTitle">発券から運営を試す</h2>
+<p class="loading">テスト用の整理券を発行して、内容・料金確認 → 同意確認 → 入場 → 貸出・返却 → 退場まで練習できます。データはテスト用シートに保存され、LINE通知は送信されません。</p>
+<div class="test-reception-fields">
+<div class="field"><label for="testCustomerName">テスト用の氏名</label><input id="testCustomerName" maxlength="100" value="テストのお客様" autocomplete="off"></div>
+<div class="field"><label for="testAdults">大人の人数</label><input id="testAdults" type="number" inputmode="numeric" min="0" max="50" step="1" value="1"></div>
+<div class="field"><label for="testChildren">子供の人数</label><input id="testChildren" type="number" inputmode="numeric" min="0" max="50" step="1" value="1"></div>
+</div>
+<div class="test-reception-actions"><button type="button" class="btn" id="issueTestTicket">テスト整理券を発行</button><button type="button" class="btn btn-outline" id="checkTestTicket" hidden>保存状態を確認</button></div>
+<p class="loading">発券結果が不明なときは画面を更新せず、「保存状態を確認」を使ってください。</p>
+<p id="testTicketNotice" role="status" aria-live="polite"></p>
+<div id="testTicketResult" class="test-reception-result" hidden><div>テスト受付番号</div><div id="testTicketNumber" class="test-reception-number"></div>
+<div class="test-reception-actions"><button type="button" class="btn" id="openTestReception">この番号で受付を確認</button><a class="btn btn-outline" id="testQueueLink">同意確認・入場へ</a></div>
+<p class="loading">まず「この番号で受付を確認」で内容・料金を確定してください。次に受付一覧の「紙の同意書で受理」で同意確認を練習し、入場を確定できます。実際のGoogleフォーム・LINE連携の確認は別途必要です。</p></div>
+<details id="testLineDetails" class="test-line-details">
+<summary>LINE通知の本文・履歴を確認</summary>
+<p class="loading">履歴はテスト操作で作られた送信予定です。実際のLINEには届きません。本文見本の氏名・番号・日時・金額は仮の値です。</p>
+<button type="button" class="btn btn-outline" id="refreshTestLine">通知履歴を更新</button>
+<p id="testLineStatus" role="status" aria-live="polite"></p>
+<h3>今回のテスト操作で作られた通知</h3><div id="testLineHistory"></div>
+<div id="testLineRealControls" hidden><label for="testLineRecipient">ご本人のLINE受信先ID（Uから始まるID）</label><input id="testLineRecipient" type="text" autocomplete="off" spellcheck="false" maxlength="33" style="width:100%;min-height:48px;box-sizing:border-box"><p class="loading">各見本の送信ボタンは、この会話で指定されたご本人のLINEだけに送信します。全見本は16件です。通常のテスト操作は仮送信のままです。実送信のボタンは1回につき1件です。</p></div>
+<h3>全通知の本文見本</h3><div id="testLineCatalog"></div>
+<h3>現在はLINE通知がない場面</h3><div id="testLineMissing"></div>
+</details>
+<style>.test-line-details{margin-top:24px;border-top:1px solid var(--border);padding-top:16px}.test-line-details summary{min-height:48px;padding:10px 0;cursor:pointer;font-weight:700;color:var(--brand-dark)}.test-line-details h3{font-size:16px;margin:24px 0 12px}.test-line-item{margin:12px 0;padding:16px;border:1px solid #c8dce8;border-radius:12px;background:#fff;overflow-wrap:anywhere}.test-line-item pre{font:inherit;line-height:1.8;white-space:pre-wrap;overflow-wrap:anywhere;margin:12px 0}.test-line-item small{display:block;color:#52657a;line-height:1.7}</style>
+
+</section>
+<script>
+(function(){
+ var panel=document.getElementById('testReceptionPanel'),issue=document.getElementById('issueTestTicket'),check=document.getElementById('checkTestTicket'),
+ notice=document.getElementById('testTicketNotice'),result=document.getElementById('testTicketResult'),operation=null,payload=null,ticket='',busy=false;
+ var inputs=['testCustomerName','testAdults','testChildren'].map(function(id){return document.getElementById(id);});
+ function lock(value){busy=value;issue.disabled=value;check.disabled=value;inputs.forEach(function(el){el.disabled=value||!!operation;});issue.setAttribute('aria-busy',String(value));}
+ function testReceptionQueueUrl_(){var url=baseUrl+'?page=queuelist';return url;}
+ function show(saved){ticket=saved.ticketNo;operation=null;payload=null;lock(false);check.hidden=true;result.hidden=false;
+  document.getElementById('testTicketNumber').textContent=ticket;document.getElementById('testQueueLink').href=testReceptionQueueUrl_();
+  notice.textContent='発券しました。受付内容・料金の確認へ進んでください。';issue.textContent='別のテスト整理券を発行';}
+ function status(){
+  if(!operation||busy)return;lock(true);notice.textContent='保存状態を確認しています…';
+  staffRun().withSuccessHandler(function(s){lock(false);if(s.state==='DONE'){show(s.result);return;}
+   if(s.state==='REJECTED'){operation=null;payload=null;lock(false);check.hidden=true;notice.textContent=s.message||'発券されていません。入力を確認してください。';return;}
+   if(s.state==='NOT_FOUND'){notice.textContent='未保存です。同じ操作番号で再送できます。';issue.disabled=false;issue.textContent='同じ発券を再送';return;}
+   issue.disabled=true;notice.textContent=(s.ticketNo?'受付 '+s.ticketNo+'：':'')+'保存結果の確認が必要です。重複発券せず管理者へ確認してください。';
+  }).withFailureHandler(function(e){lock(false);issue.disabled=true;notice.textContent='保存状態を確認できません。もう一度「保存状態を確認」を押してください。';}).getStaffMutationStatus(operation.requestId);
+ }
+ issue.addEventListener('click',function(){if(busy)return;if(!operation){
+  var name=inputs[0].value.trim(),a=Number(inputs[1].value),ch=Number(inputs[2].value);
+  if(!name||name.length>100){notice.textContent='テスト用の氏名を入力してください。';inputs[0].focus();return;}
+  if(inputs[1].value===''||inputs[2].value===''||!Number.isInteger(a)||!Number.isInteger(ch)||a<0||ch<0||a+ch<1||a+ch>50){notice.textContent='人数は合計1〜50名の整数で入力してください。';inputs[1].focus();return;}
+  payload={customerName:name,adults:a,children:ch};operation=makeStaffOperation_();
+ }lock(true);result.hidden=true;notice.textContent='テスト整理券を発行しています…';
+ staffRun(operation).withSuccessHandler(show).withFailureHandler(function(e){lock(false);issue.disabled=true;check.hidden=false;notice.textContent='発券結果を確認します。';status();}).issueTestReceptionTicket(payload);
+ });
+ check.addEventListener('click',status);
+ document.getElementById('openTestReception').addEventListener('click',function(){if(!ticket)return;document.getElementById('searchTicketNo').value=ticket;document.getElementById('searchBtn').click();});
+
+ function addLineMessage(parent,message){
+  var body=document.createElement('pre');body.textContent=message.text||'(テキスト以外の通知)';parent.appendChild(body);
+  var buttons=message.quickReply&&message.quickReply.items||[];
+  buttons.forEach(function(item){var p=document.createElement('small');p.textContent='操作ボタン：'+item.action.label+'（この画面では実行しません）';parent.appendChild(p);});
+ }
+
+ var testRealSends=Object.create(null);
+ function lineSendButton(row,item,index){
+  var key=item.id+':'+index,state=testRealSends[key],button=document.createElement('button'),message=document.createElement('p'),check=document.createElement('button');
+  button.type='button';button.className='btn btn-outline';button.textContent=state&&state.accepted?'LINE API受理済み':'この見本を自分のLINEへ送信（1件）';button.disabled=!!(state&&(state.busy||state.accepted||state.blocked));
+  check.type='button';check.className='btn btn-outline';check.textContent='送信結果を確認';check.hidden=!(state&&state.blocked);
+  message.setAttribute('role','status');message.textContent=state&&state.accepted?'LINE APIが受理しました。端末への到着はLINEで確認してください。':'';
+  row.appendChild(button);row.appendChild(check);row.appendChild(message);
+  function accepted(){state.accepted=true;state.busy=false;state.blocked=false;button.disabled=true;button.textContent='LINE API受理済み';check.hidden=true;message.textContent='LINE APIが受理しました。端末への到着はLINEで確認してください。';}
+  function status(){if(!state||state.busy)return;check.disabled=true;staffRun().withSuccessHandler(function(s){check.disabled=false;if(s.state==='DONE'){accepted();return;}
+   if(s.state==='NOT_FOUND'){state.blocked=false;button.disabled=false;button.textContent='同じ操作番号で送信を再試行';message.textContent='未保存です。受信先IDを確認して、同じ操作番号で再試行できます。';return;}
+   message.textContent='送信結果の確認が必要です。LINEに届いている可能性があるため、新しく送信せず確認してください。';button.disabled=true;
+  }).withFailureHandler(function(){check.disabled=false;message.textContent='送信結果を確認できません。画面を更新せず、もう一度結果を確認してください。';}).getStaffMutationStatus(state.operation.requestId);}
+  button.addEventListener('click',function(){if(state&&(state.busy||state.accepted||state.blocked))return;
+   var recipient=document.getElementById('testLineRecipient').value.trim();if(!/^U[0-9a-f]{32}$/.test(recipient)){message.textContent='ご本人のUから始まる受信先IDを入力してください。';document.getElementById('testLineRecipient').focus();return;}
+   state=state||(testRealSends[key]={operation:makeStaffOperation_()});state.busy=true;state.payload={recipient:recipient,id:item.id,sampleIndex:index};button.disabled=true;message.textContent='ご本人のLINEへテスト送信しています…';
+   staffRun(state.operation).withSuccessHandler(accepted).withFailureHandler(function(e){state.busy=false;state.blocked=true;button.disabled=true;check.hidden=false;message.textContent=(e&&e.message||'送信結果を確認できません。')+' 画面を更新せず「送信結果を確認」を押してください。';status();}).sendTestLineNotification(state.payload);
+  });check.addEventListener('click',status);
+ }
+
+ function refreshLines(){
+  var button=document.getElementById('refreshTestLine'),status=document.getElementById('testLineStatus');button.disabled=true;status.textContent='通知内容を確認しています…';
+  staffRun().withSuccessHandler(function(data){
+   button.disabled=false;document.getElementById('testLineRealControls').hidden=!data.canSendReal;status.textContent='通常のテスト操作は実送信なし・通知本文 '+data.catalog.length+'種類／最新の自分のテスト履歴 '+data.entries.length+'件';
+   var history=document.getElementById('testLineHistory'),catalog=document.getElementById('testLineCatalog'),missing=document.getElementById('testLineMissing');
+   history.replaceChildren();catalog.replaceChildren();missing.replaceChildren();
+   if(!data.entries.length)history.textContent='通知はまだありません。テスト整理券を発行すると、受付通知がここに表示されます。';
+   data.entries.forEach(function(e){var row=document.createElement('article');row.className='test-line-item';var label=document.createElement('strong');label.textContent=e.createdLabel+' '+e.audience+'・仮送信';row.appendChild(label);e.messages.forEach(function(m){addLineMessage(row,m);});history.appendChild(row);});
+   data.catalog.forEach(function(e){var row=document.createElement('details');row.className='test-line-item';var label=document.createElement('summary');label.textContent=e.title+'（'+e.audience+'）';row.appendChild(label);var condition=document.createElement('p');condition.textContent=e.condition;row.appendChild(condition);
+    e.samples.forEach(function(m,index){addLineMessage(row,{text:m.text,quickReply:m.button?{items:[{action:{label:m.button.label}}]}:null});if(data.canSendReal)lineSendButton(row,e,index);});catalog.appendChild(row);});
+   data.notConfigured.forEach(function(text){var p=document.createElement('p');p.textContent='・'+text;missing.appendChild(p);});
+  }).withFailureHandler(function(e){button.disabled=false;status.textContent='通知内容を取得できません。もう一度更新してください。';}).getTestLineNotifications();
+ }
+ document.getElementById('refreshTestLine').addEventListener('click',refreshLines);
+ document.getElementById('testLineDetails').addEventListener('toggle',function(){if(this.open)refreshLines();});
+ window.addEventListener('staff-operation-complete',function(event){if(event.detail&&event.detail.action==='sendTestLineNotification')return;if(document.getElementById('testLineDetails').open&&!panel.hidden)refreshLines();});
+
+ staffRun().withSuccessHandler(function(s){panel.hidden=!s.enabled;}).withFailureHandler(function(){panel.hidden=true;}).getTestReceptionStatus();
+})();
+</script>
+      <div id="receptionErrorBox" class="msg-error" style="display:none;" role="alert"></div>
       <div id="receptionRecovery" class="card" style="display:none;">
         <p id="receptionRecoveryMessage"></p>
         <button class="btn btn-outline" id="checkReceptionSave">保存状態を確認</button>
