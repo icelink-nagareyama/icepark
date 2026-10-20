@@ -53,6 +53,7 @@
   .btn {
     display: block; width: 100%; margin-top: 18px; padding: 14px; border: none; border-radius: 10px;
     background: var(--brand); color: #fff; font-size: 16px; font-weight: bold; cursor: pointer;
+    text-align: center; text-decoration: none;
   }
   .btn:disabled { background: #9fb0ba; }
   .btn.secondary { background: #fff; color: var(--brand); border: 1px solid var(--brand); margin-top: 0; padding: 8px 14px; font-size: 13px; width: auto; }
@@ -99,7 +100,7 @@
   #customerPortal h2 { font-size:18px; color:var(--brand-dark); margin:0 0 16px; }
   #customerPortal h3 { font-size:23px; color:var(--brand-dark); margin:0 0 10px; font-variant-numeric:tabular-nums; }
   #customerPortal .cp-nav { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:6px; margin-bottom:20px; }
-  #customerPortal .cp-nav a { min-height:48px; display:flex; align-items:center; justify-content:center; padding:8px 2px; color:var(--brand-dark); background:#fff; border:1px solid var(--border); border-radius:8px; font-size:14px; text-decoration:none; }
+  #customerPortal .cp-nav a { min-height:48px; display:flex; align-items:center; justify-content:center; padding:8px 2px; color:var(--brand-dark); background:#fff; border:1px solid var(--border); border-radius:8px; font-size:14px; text-decoration:none; text-align:center; }
   #customerPortal input:not([type=checkbox]), #customerPortal select { width:100%; min-width:0; min-height:48px; padding:10px 12px; border:1px solid var(--border); border-radius:8px; font:inherit; font-size:16px; background:#fff; }
   #customerPortal .btn, #customerPortal button { min-height:48px; font-size:16px; }
   #customerPortal .btn.secondary { width:100%; color:var(--brand); border-color:var(--brand); margin-bottom:16px; padding:12px; }
@@ -213,6 +214,80 @@ body.mp-dark .owned-pass-wrap #memberInfo { color:#dfd7c8; }
 .owned-pass-wrap #stopEditingReservation { width:100%; margin:12px 0 0; min-height:44px; }
 .owned-pass-wrap #changeRecovery .btn { margin:12px 0 0; width:100%; min-height:48px; }
 .owned-pass-wrap #editingReservationInfo { padding:12px; border:1px solid #abc9da; border-radius:8px; background:#eef7fc; color:#183d52; }
+/* customer-refinement-20261020: shared visual treatment; existing flows stay intact. */
+:root { --brand:#1268ad; --brand-dark:#102e46; --bg:#f1f6fa; --border:#d9e5ed; }
+body { color:#203d52; background:radial-gradient(ellipse at 50% 0,#e4f2fb 0,transparent 520px),var(--bg); line-height:1.65; }
+.wrap { padding-top:28px; padding-bottom:48px; }
+#customerPortal { padding-inline:20px; }
+#customerPortal > .header {
+  position:relative; overflow:hidden; isolation:isolate; padding:28px 24px; margin-bottom:18px;
+  border:1px solid #274b63; border-radius:22px; background:linear-gradient(120deg,#102c43,#1c4964);
+  box-shadow:0 12px 28px #153d5212;
+}
+#customerPortal > .header:after {
+  content:''; position:absolute; z-index:-1; width:220px; height:220px; right:-100px; top:-140px;
+  border:32px solid #b9eaff12; border-radius:50%; pointer-events:none;
+}
+#customerPortal .header .logo { color:#c8e8f8; font-size:12px; font-weight:600; letter-spacing:.06em; line-height:1.8; }
+#customerPortal .header h1 { color:#fff; font-size:clamp(23px,4.6vw,30px); line-height:1.4; margin:8px 0 0; letter-spacing:.04em; }
+#customerPortal .cp-nav { padding:5px; gap:4px; background:#e3edf4; border:1px solid #d6e3ec; border-radius:14px; }
+#customerPortal .cp-nav a { border:0; background:#ffffffa8; border-radius:10px; font-size:13px; font-weight:700; transition:background-color .16s,color .16s; }
+#customerPortal .cp-nav a:hover { background:#fff; color:var(--brand); }
+.card { border-radius:20px; box-shadow:0 4px 18px #153d5208; }
+#customerPortal > .card { padding:24px; margin-bottom:22px; }
+#customerPortal h2 { font-size:19px; line-height:1.55; letter-spacing:.025em; }
+#customerPortal .card > h2:first-child { padding-bottom:14px; border-bottom:1px solid #e5edf3; margin-bottom:20px; }
+#customerPortal h1 { color:var(--brand-dark); font-size:26px; line-height:1.45; }
+.muted { color:#52687a; font-size:14px; line-height:1.85; }
+#customerPortal label { color:#334e61; font-size:14px; margin-top:20px; margin-bottom:8px; }
+#customerPortal input:not([type=checkbox]), #customerPortal select {
+  min-height:52px; border-color:#cbdbe7; border-radius:11px; background:#f9fcfe;
+}
+#customerPortal input:focus, #customerPortal select:focus {
+  background:#fff; outline:2px solid #1268ad; outline-offset:2px;
+}
+.btn {
+  min-height:50px; border-radius:12px; background:#1268ad; box-shadow:0 4px 10px #1268ad16;
+  letter-spacing:.025em; line-height:1.5; transition:background-color .16s,box-shadow .16s;
+}
+.btn:not(:disabled):hover { background:#0b538e; }
+.btn:not(:disabled):active { box-shadow:none; }
+.btn.secondary { border-color:#b8cddd; box-shadow:none; }
+#customerPortal .btn.secondary { color:#175b8d; border-color:#b8cddd; background:#fff; border-radius:12px; }
+#customerPortal .btn.secondary:not(:disabled):hover { background:#edf6fc; border-color:#1268ad; }
+#customerPortal > .btn.secondary { background:#e7f1f8; border-color:#d6e5ef; }
+#customerPortal .btn:disabled { box-shadow:none; color:#526779; background:#e3ebf1; border-color:#d8e2ea; cursor:not-allowed; }
+#customerPortal .stepper button { border-color:#cbdfed; background:#ecf5fc; color:#175b8d; border-radius:10px; text-align:center; }
+#customerPortal .fee-box { padding:20px; border:1px solid #d4e6f2; background:#edf6fc; border-radius:14px; align-items:center; }
+#customerPortal .fee-box strong { font-size:28px; letter-spacing:-.02em; font-variant-numeric:tabular-nums; }
+#customerPortal .cp-ticket { border:1px solid #e0e9f0; border-radius:14px; padding:20px; margin-top:14px; background:#fbfdff; }
+#customerPortal #crCrowdCard { border-color:#bbdce9; background:linear-gradient(135deg,#fff,#eff9fc); }
+#customerPortal #crCongestion { font-size:clamp(24px,5vw,30px); line-height:1.4; color:#105b7d; margin:16px 0 10px; }
+#customerPortal #crEntryEstimate { padding:14px 16px; background:#e1f0f7; border:1px solid #c5e0ed; border-radius:12px; }
+#customerPortal #crNotice, #customerPortal #paNotice { font-size:13px; color:#52687a; padding-inline:4px; margin-block:16px; }
+#customerPortal #gcStatus { padding:16px; background:#edf5fb; border:1px solid #d7e7f2; border-radius:12px; }
+.pa-plan { padding:22px; border-top-width:3px; border-radius:16px; box-shadow:0 4px 16px #163a4f06; }
+.pa-plan .pa-guide { font-size:13px; color:#52687a; }
+.pa-plan .pa-prices { font-size:18px; line-height:1.6; font-variant-numeric:tabular-nums; }
+.pa-plan.pa-selected { background:#f0f8ff; border-color:#1268ad; box-shadow:0 0 0 1px #1268ad; }
+.pa-plan:nth-child(2) { border-top-color:#168293; }
+.pa-plan:nth-child(3) { border-top-color:#b98b3b; }
+.pa-plan .pa-value { background:#edf5fb; color:#164e73; border-radius:10px; }
+.owned-pass-wrap > .header { margin-bottom:28px; }
+.owned-pass-wrap #consentNav a { border-color:#cadce8; border-radius:12px; background:#fff; color:#175b8d; }
+.owned-pass-wrap #consentNav a:hover { background:#edf6fc; }
+.owned-pass-wrap .mp-premium { box-shadow:0 18px 42px #05233620; }
+body.mp-dark { background:radial-gradient(ellipse at top,#123248,#021522 65%); }
+@media(max-width:520px) {
+  #customerPortal { padding:20px 16px 40px; }
+  #customerPortal > .header { padding:24px 18px; border-radius:18px; }
+  #customerPortal > .card { padding:20px; border-radius:18px; }
+  #customerPortal .fee-box { padding:16px; }
+  .pa-plan { padding:20px; }
+}
+@media(prefers-reduced-motion:reduce) { .btn,#customerPortal .cp-nav a { transition:none; } }
+
+
 </style>
 </head>
 <body>
