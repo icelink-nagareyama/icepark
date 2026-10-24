@@ -9,20 +9,22 @@
     .aid-loan-fields{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 96px minmax(180px,1.15fr);align-items:end;gap:16px}
     .aid-loan-fields .field{margin:0;min-width:0}.aid-loan-fields input{min-height:48px}.aid-loan-quantity input{text-align:center;font-variant-numeric:tabular-nums}
     .aid-loan-fields #startBtn{width:100%;min-height:48px}.aid-loan-hint{display:block;margin-top:10px;color:var(--text-sub);font-size:13px}
+    @media(max-width:500px){.aid-rental-row{grid-template-columns:minmax(0,1fr)}.aid-rental-row .list-row-table-actions{grid-column:auto}}
     @media(max-width:700px){.aid-loan-fields{grid-template-columns:88px minmax(0,1fr);gap:12px}.aid-loan-ticket,.aid-loan-band{grid-column:1 / -1}}
 
     .aid-rental-row{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.25fr) auto;align-items:center;gap:20px}
     .aid-rental-identity{min-width:0}.aid-rental-identity .list-row-ticket{font-size:18px;line-height:1.5}
     .aid-time-label{display:block;color:var(--text-sub);font-size:13px;font-weight:600}
-    .aid-deadline{display:block;font-size:32px;line-height:1.2;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:.02em;color:var(--brand-dark)}
-    .aid-time-status{display:inline-block;margin-top:8px;padding:5px 10px;border-radius:8px;font-size:17px;font-weight:700;line-height:1.4;background:#e7f5ef;color:#155d45}
+    .aid-time-main{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.aid-deadline{display:block;font-size:26px;line-height:1.2;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:.02em;color:var(--brand-dark)}
+    .aid-time-status{display:inline-block;margin-top:0;padding:5px 10px;border-radius:8px;font-size:15px;font-weight:700;line-height:1.4;background:#e7f5ef;color:#155d45}
     .aid-time-status[data-state="soon"]{background:#fff2d6;color:#805000}.aid-time-status[data-state="overdue"]{background:#fdebea;color:#a12722}
     .aid-time-status[data-state="unknown"]{background:#edf1f5;color:#43576a}
     .aid-start-detail{display:flex;flex-wrap:wrap;gap:2px 6px;margin-top:8px;color:var(--text-sub);font-size:13px;line-height:1.5}
     .aid-rental-row .return-btn{min-height:48px;white-space:nowrap}
     .aid-time-note{margin:0 0 14px;color:var(--text-sub);font-size:13px;line-height:1.6}
-    @media(max-width:700px){.aid-rental-row{grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:14px}.aid-rental-row .list-row-table-actions{grid-column:1/-1}.aid-rental-row .return-btn{width:100%}.aid-deadline{font-size:30px}}
-  </style>
+    @media(max-width:700px){.aid-rental-row{grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:14px}.aid-rental-row .list-row-table-actions{grid-column:1/-1}.aid-rental-row .return-btn{width:100%}.aid-deadline{font-size:24px}}
+  @media(max-width:500px){.aid-rental-row{grid-template-columns:minmax(0,1fr)}}
+</style>
 </head>
 <body data-layout-page="AidInventory" class="layout-refresh">
   <section id="operationBar" class="operation-bar" aria-label="本日の運営情報">
@@ -144,7 +146,7 @@
     }
     function renderAidLoan_(a) {
       var timing=aidLoanTiming_(a),row=document.createElement('div');row.className='list-row';
-      row.innerHTML='<div class="aid-rental-row"><div class="aid-rental-identity"><div class="list-row-ticket"></div><div class="list-row-sub"></div></div><div><span class="aid-time-label">返却予定</span><strong class="aid-deadline"></strong><span class="aid-time-status"></span><small class="aid-start-detail"></small></div><div class="list-row-table-actions"><button type="button" class="btn btn-sm return-btn">返却する</button></div></div>';
+      row.innerHTML='<div class="aid-rental-row"><div class="aid-rental-identity"><div class="list-row-ticket"></div><div class="list-row-sub"></div></div><div><span class="aid-time-label">返却予定</span><div class="aid-time-main"><strong class="aid-deadline"></strong><span class="aid-time-status"></span></div><small class="aid-start-detail"></small></div><div class="list-row-table-actions"><button type="button" class="btn btn-sm return-btn">返却する</button></div></div>';
       row.querySelector('.list-row-ticket').textContent='補助具 '+(a.aidNo||'未割当');
       row.querySelector('.list-row-sub').textContent='受付 '+a.ticketNo+(a.bandNo?' ／ バンド '+a.bandNo:'');
       row.querySelector('.aid-deadline').textContent=timing.deadline;
