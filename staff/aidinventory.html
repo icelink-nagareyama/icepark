@@ -10,6 +10,18 @@
     .aid-loan-fields .field{margin:0;min-width:0}.aid-loan-fields input{min-height:48px}.aid-loan-quantity input{text-align:center;font-variant-numeric:tabular-nums}
     .aid-loan-fields #startBtn{width:100%;min-height:48px}.aid-loan-hint{display:block;margin-top:10px;color:var(--text-sub);font-size:13px}
     @media(max-width:700px){.aid-loan-fields{grid-template-columns:88px minmax(0,1fr);gap:12px}.aid-loan-ticket,.aid-loan-band{grid-column:1 / -1}}
+
+    .aid-rental-row{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.25fr) auto;align-items:center;gap:20px}
+    .aid-rental-identity{min-width:0}.aid-rental-identity .list-row-ticket{font-size:18px;line-height:1.5}
+    .aid-time-label{display:block;color:var(--text-sub);font-size:13px;font-weight:600}
+    .aid-deadline{display:block;font-size:32px;line-height:1.2;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:.02em;color:var(--brand-dark)}
+    .aid-time-status{display:inline-block;margin-top:8px;padding:5px 10px;border-radius:8px;font-size:17px;font-weight:700;line-height:1.4;background:#e7f5ef;color:#155d45}
+    .aid-time-status[data-state="soon"]{background:#fff2d6;color:#805000}.aid-time-status[data-state="overdue"]{background:#fdebea;color:#a12722}
+    .aid-time-status[data-state="unknown"]{background:#edf1f5;color:#43576a}
+    .aid-start-detail{display:flex;flex-wrap:wrap;gap:2px 6px;margin-top:8px;color:var(--text-sub);font-size:13px;line-height:1.5}
+    .aid-rental-row .return-btn{min-height:48px;white-space:nowrap}
+    .aid-time-note{margin:0 0 14px;color:var(--text-sub);font-size:13px;line-height:1.6}
+    @media(max-width:700px){.aid-rental-row{grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:14px}.aid-rental-row .list-row-table-actions{grid-column:1/-1}.aid-rental-row .return-btn{width:100%}.aid-deadline{font-size:30px}}
   </style>
 </head>
 <body data-layout-page="AidInventory" class="layout-refresh">
@@ -72,9 +84,7 @@
               <span>貸出中</span>
               <span class="tag" id="activeTotalTag">0件</span>
             </div>
-            <div class="list-row-table-head no-badge">
-              <div>補助具番号／受付番号</div><div>貸出開始</div><div>操作</div>
-            </div>
+            <p class="aid-time-note">返却予定はお客様の退場時刻とは別です。残り時間は15秒ごとに更新します。</p>
             <div id="activeList"></div>
           </div>
 
@@ -122,6 +132,28 @@
       document.getElementById('errorBox').style.display = 'none';
     }
 
+    function aidLoanTiming_(a) {
+      var valid=typeof a.returnScheduledLabel==='string'&&a.returnScheduledLabel.trim()&&a.returnScheduledLabel!=='-';
+      if(!valid)return {deadline:'時刻未確認',text:'返却予定を確認してください',state:'unknown'};
+      if(typeof a.overdueMinutes==='number'&&Number.isFinite(a.overdueMinutes)&&a.overdueMinutes>0)return {deadline:a.returnScheduledLabel,text:Math.ceil(a.overdueMinutes)+'分超過',state:'overdue'};
+      if(typeof a.remainingMinutes==='number'&&Number.isFinite(a.remainingMinutes)&&a.remainingMinutes>=0&&!a.isOverdue){
+        var minutes=Math.ceil(a.remainingMinutes);
+        return {deadline:a.returnScheduledLabel,text:minutes>0?'あと '+minutes+'分':'返却予定時刻です',state:minutes<=10?'soon':'normal'};
+      }
+      return {deadline:a.returnScheduledLabel,text:'残り時間を確認してください',state:'unknown'};
+    }
+    function renderAidLoan_(a) {
+      var timing=aidLoanTiming_(a),row=document.createElement('div');row.className='list-row';
+      row.innerHTML='<div class="aid-rental-row"><div class="aid-rental-identity"><div class="list-row-ticket"></div><div class="list-row-sub"></div></div><div><span class="aid-time-label">返却予定</span><strong class="aid-deadline"></strong><span class="aid-time-status"></span><small class="aid-start-detail"></small></div><div class="list-row-table-actions"><button type="button" class="btn btn-sm return-btn">返却する</button></div></div>';
+      row.querySelector('.list-row-ticket').textContent='補助具 '+(a.aidNo||'未割当');
+      row.querySelector('.list-row-sub').textContent='受付 '+a.ticketNo+(a.bandNo?' ／ バンド '+a.bandNo:'');
+      row.querySelector('.aid-deadline').textContent=timing.deadline;
+      var state=row.querySelector('.aid-time-status');state.textContent=timing.text;state.dataset.state=timing.state;
+      var started=row.querySelector('.aid-start-detail');started.textContent='貸出開始 '+(a.startTimeLabel||'未確認');if(typeof a.elapsedMin==='number'&&Number.isFinite(a.elapsedMin)){var elapsed=document.createElement('span');elapsed.style.whiteSpace='nowrap';elapsed.textContent='（'+a.elapsedMin+'分経過）';started.appendChild(elapsed);}
+      var button=row.querySelector('.return-btn');button.dataset.log=a.logId;button.setAttribute('aria-label','補助具 '+(a.aidNo||'未割当')+' 受付 '+a.ticketNo+' を返却する');
+      return row;
+    }
+
     function renderInventory(v) {
       aidAvailable=v.available;updateAidLoanControls_();
       document.getElementById('totalCount').textContent = v.total;
@@ -139,25 +171,7 @@
         return;
       }
       box.innerHTML = '';
-      v.active.forEach(function (a) {
-        var row = document.createElement('div');
-        row.className = 'list-row';
-        row.innerHTML =
-          '<div class="list-row-table no-badge">' +
-            '<div>' +
-              '<div class="list-row-ticket">補助具 ' + (a.aidNo || '未割当') + ' ／ 受付 ' + a.ticketNo + '</div>' +
-              '<div class="list-row-sub">' + a.bandNo + '</div>' +
-            '</div>' +
-            '<div>' +
-              '<div>' + a.startTimeLabel + '（' + a.elapsedMin + '分経過）</div>' +
-              (a.isOverdue ? '<span class="badge badge-warn">1時間超過</span>' : '<span class="badge badge-ok">貸出中</span>') +
-            '</div>' +
-            '<div class="list-row-table-actions">' +
-              '<button class="btn btn-sm return-btn" data-log="' + a.logId + '">返却する</button>' +
-            '</div>' +
-          '</div>';
-        box.appendChild(row);
-      });
+      v.active.forEach(function (a) { box.appendChild(renderAidLoan_(a)); });
       document.querySelectorAll('.return-btn').forEach(function (btn) {
         btn.addEventListener('click', function () { returnAid(btn.getAttribute('data-log')); });
       });
@@ -166,7 +180,7 @@
     function loadInventory() {
       staffRun()
         .withSuccessHandler(renderInventory)
-        .withFailureHandler(function (err) { showError('在庫状況の取得に失敗しました：' + (err && err.message ? err.message : err)); })
+        .withFailureHandler(function (err) { document.querySelectorAll('.aid-time-status').forEach(function(el){el.textContent='残り時間を更新できません';el.dataset.state='unknown';}); showError('在庫状況の取得に失敗しました：' + (err && err.message ? err.message : err)); })
         .getAidInventoryView();
     }
 
