@@ -1,7 +1,7 @@
 <!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="referrer" content="no-referrer"><meta name="robots" content="noindex,nofollow"><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#102b43"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="アイスパーク管理"><meta name="apple-mobile-web-app-status-bar-style" content="default"><link rel="apple-touch-icon" href="app-icon.jpg"><title>アイスパークin流山 管理画面</title><script src="bridge.js"></script><meta name="referrer" content="no-referrer"><base target="_top"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Noto+Sans+JP:wght@400;500;600;700&display=swap"><link rel="stylesheet" href="theme.css"><script src="common.js"></script>
 <style>.queue-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.queue-summary{white-space:pre-line;line-height:1.9;overflow-wrap:anywhere}.queue-state{margin:12px 0;font-weight:700;color:var(--brand-dark)}#queueEditor #searchCard,#queueEditor #nextBtn{display:none!important}#queueEditor .two-col-side{position:static}#queueReview,#queueEditor{scroll-margin-top:calc(var(--operation-bar-height,120px) + 12px)}</style>
 <style>@media(min-width:1101px){#calledList .list-row,#waitingList .list-row{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:16px;row-gap:3px;align-items:center;padding:12px 16px;margin-bottom:8px}#calledList .list-row>div:not(.queue-actions),#waitingList .list-row>div:not(.queue-actions){grid-column:1;min-width:0}#calledList .queue-actions,#waitingList .queue-actions{grid-column:2;grid-row:1 / span 2;margin-top:0;justify-content:flex-end;gap:6px}.queue-actions .btn-sm{min-height:36px;padding:7px 12px}}</style>
-</head><body data-layout-page="QueueList" class="layout-refresh"><section id="operationBar" class="operation-bar" aria-label="本日の運営情報">
+<style>.queue-batch-toolbar{flex-wrap:wrap;gap:12px}.queue-batch-toolbar #callWaitingBatch{min-height:44px;max-width:100%;white-space:normal}@media(max-width:700px){.queue-batch-toolbar #callWaitingBatch{flex-basis:100%;width:100%}}</style></head><body data-layout-page="QueueList" class="layout-refresh"><section id="operationBar" class="operation-bar" aria-label="本日の運営情報">
   <div class="operation-bar-items">
     <div class="operation-bar-item"><span class="operation-bar-label"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="16" rx="3"/><path d="M8 3v4m8-4v4M4 11h16m-12 4h3"/></svg>運営方法</span><span class="operation-bar-value" id="operationBarStatus">読み込み中…</span></div>
     <div class="operation-bar-item"><span class="operation-bar-label"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>運営時間</span><span class="operation-bar-value" id="operationBarHours">読み込み中…</span></div>
@@ -593,8 +593,9 @@
 </div>
 <section class="card">運営モード：<span id="modeLabel" class="badge-mode">-</span><span id="updatedAt" class="loading"></span><div class="grid mt-16" style="grid-template-columns:1fr 1fr"><div class="stat-card"><div class="value" id="onIceCount">-</div><div class="label">氷上人数</div></div><div class="stat-card"><div class="value" id="calledCount">-</div><div class="label">呼出中人数</div></div></div></section>
 <section class="card"><div class="section-title">呼出中 <span id="calledTotalTag" class="tag"></span></div><div id="calledList"></div></section>
-<section class="card"><div class="section-title">待機中 <span id="waitingTotalTag" class="tag"></span></div><div id="waitingList"></div></section>
+<section class="card"><div class="section-title queue-batch-toolbar">待機中 <span id="waitingTotalTag" class="tag"></span><button type="button" class="btn btn-outline btn-sm" id="callWaitingBatch" disabled>一斉呼出し</button></div><div id="waitingList"></div></section>
 </main></div><script>
+var queueBatchWaitingCount=0;
 var queueSelected=null,queueEditing=false,queueGeneration=0,queueDetailGeneration=0,queueDetailLoading=false;
 var queuePending=Object.create(null),queueFailed=Object.create(null);
 var MODE_LABEL={SELF_ENTRY:'セルフ入場',AUTO_CALL:'自動呼出',MANUAL_CALL:'手動呼出'};
@@ -603,6 +604,7 @@ function showError(message){var b=document.getElementById('errorBox');b.textCont
 function clearError(){document.getElementById('errorBox').style.display='none';}
 function queueBlocked(){return receptionSubmitting||(receptionOperation&&document.getElementById('receptionRecovery').style.display!=='none');}
 function renderQueueReview(){
+ updateQueueBatchControls_();
  if(!queueSelected)return;
  var q=queueSelected,valid=['WAITING','CALLED'].indexOf(q.status)!==-1,consentOK=['PAPER','SUBMITTED'].indexOf(q.consentStatus)!==-1;
  document.getElementById('queueReview').style.display='block';document.getElementById('queueReviewTitle').textContent='受付 '+q.ticketNo+' の内容確認';
@@ -638,7 +640,9 @@ function renderQueueRows(list,id){
 }
 function finishQueueAction(action,result,key){
  delete queuePending[key];delete queueFailed[key];clearError();
+ updateQueueBatchControls_();
  if(action==='admitToIce'){renderAdmissionBands_(document.getElementById('queueNotice'),result);queueSelected=null;queueDetailGeneration++;document.getElementById('queueReview').style.display='none';document.getElementById('queueEditor').style.display='none';}
+ else if(action==='callWaitingBatch'){document.getElementById('queueNotice').textContent=result.count+'組・'+result.partySize+'名を呼び出しました。'+(result.notificationFailedTicketNos.length?' LINE通知の送信結果を確認してください。':'')+(result.failedTicketNos.length?' 一部の受付を保存できませんでした。一覧と保存状態を確認してください。':'');}
  else{document.getElementById('queueNotice').textContent=action==='markConsentAsPaper'?'紙の同意書の受理を保存しました。受付・料金の確定状態を確認してください。':'操作を保存しました。';if(queueSelected)loadQueueSelected(queueSelected.ticketNo,false);}
  loadQueueList();refreshOperationBar();
 }
@@ -653,12 +657,23 @@ function checkQueueAction(action,args,key,retry){
  staffRun().withSuccessHandler(function(s){if(s.state==='DONE'){finishQueueAction(action,s.result,key);return;}if(s.state==='REJECTED'){delete queueFailed[key];showError(s.message+' 最新内容を読み直して確認してください。');loadQueueList();return;}
  if(s.state==='NOT_FOUND'&&retry&&window.confirm('保存記録がありません。同じ操作番号で再送しますか？')){sendQueueAction(action,args,key,operation);return;}showError('保存状態：'+s.state+'。再操作前に既存番号を確認してください。');}).withFailureHandler(function(){showError('保存成否を確認できません。同じ操作ボタンで保存状態を再確認してください。');}).getStaffMutationStatus(operation.requestId);
 }
-function loadQueueList(){var generation=++queueGeneration;staffRun().withSuccessHandler(function(d){if(generation!==queueGeneration)return;document.getElementById('modeLabel').textContent=MODE_LABEL[d.mode]||d.mode;document.getElementById('onIceCount').textContent=d.onIceCount;document.getElementById('calledCount').textContent=d.calledCount;renderQueueRows(d.called,'calledList');renderQueueRows(d.waiting,'waitingList');document.getElementById('updatedAt').textContent=' 更新：'+new Date().toLocaleTimeString('ja-JP');}).withFailureHandler(function(e){if(generation===queueGeneration)showError('一覧を取得できません：'+e.message);}).getQueueListView();}
+function loadQueueList(){var generation=++queueGeneration;staffRun().withSuccessHandler(function(d){if(generation!==queueGeneration)return;document.getElementById('modeLabel').textContent=MODE_LABEL[d.mode]||d.mode;document.getElementById('onIceCount').textContent=d.onIceCount;document.getElementById('calledCount').textContent=d.calledCount;renderQueueRows(d.called,'calledList');renderQueueRows(d.waiting,'waitingList');queueBatchWaitingCount=d.waiting.length;updateQueueBatchControls_();document.getElementById('updatedAt').textContent=' 更新：'+new Date().toLocaleTimeString('ja-JP');}).withFailureHandler(function(e){if(generation===queueGeneration)showError('一覧を取得できません：'+e.message);}).getQueueListView();}
 document.getElementById('queueEdit').addEventListener('click',function(){if(!queueSelected||queueEditing||queueBlocked())return;queueEditing=true;document.getElementById('queueEditor').style.display='block';setReceptionFieldsLocked(true);document.getElementById('submitBtn').disabled=true;document.getElementById('submitBtn').textContent=queueSelected.receptionComplete?'変更内容を保存':'料金を確認して受付を確定';loadQueueSelected(queueSelected.ticketNo,true);});
 document.getElementById('queueReload').addEventListener('click',function(){if(queueSelected)viewQueueTicket(queueSelected.ticketNo);});
 document.getElementById('queuePaper').addEventListener('click',function(){if(queueSelected&&window.confirm('紙の同意書が提出済みで、内容を確認しましたか？'))runQueueAction('markConsentAsPaper',[queueSelected.ticketNo,staffId],'paper:'+queueSelected.ticketNo);});
 document.getElementById('queueAdmit').addEventListener('click',function(){if(!queueSelected||queueEditing||this.disabled)return;if(window.confirm('受付 '+queueSelected.ticketNo+' の内容・支払額・同意書を確認して入場を確定しますか？'))runQueueAction('admitToIce',[queueSelected.ticketNo,staffId,queueSelected.version],'admit:'+queueSelected.ticketNo);});
 document.getElementById('cancelFormBtn').addEventListener('click',function(){queueEditing=false;document.getElementById('queueEditor').style.display='none';if(queueSelected)loadQueueSelected(queueSelected.ticketNo,true);});
 window.addEventListener('staff-operation-complete',function(e){loadQueueList();refreshOperationBar();if(e.detail&&e.detail.action==='confirmReceptionDetails'&&queueSelected){queueEditing=false;loadQueueSelected(queueSelected.ticketNo,false,true);}});
+
+function updateQueueBatchControls_(){
+ var b=document.getElementById('callWaitingBatch');if(!b)return;
+ b.disabled=queueBlocked()||!!queuePending['call-batch']||(!queueFailed['call-batch']&&!queueBatchWaitingCount);
+ b.textContent=queuePending['call-batch']?'呼出を保存中…':queueFailed['call-batch']?'一斉呼出しの保存状態を確認':'一斉呼出し';
+}
+document.getElementById('callWaitingBatch').addEventListener('click',function(){
+ if(queueBlocked()||queuePending['call-batch'])return;
+ if(queueFailed['call-batch']||window.confirm('空き人数に収まる組を、受付順にまとめて呼び出します。呼出期限が開始します。よろしいですか？'))runQueueAction('callWaitingBatch',[],'call-batch');
+});
+
 renderAdminSidebar('queuelist');staffRun().withSuccessHandler(function(s){document.getElementById('staffLabel').textContent=s.staffName;}).getStaffById(staffId);loadQueueList();setInterval(function(){if(!document.hidden)loadQueueList();},15000);
 </script></body></html>
