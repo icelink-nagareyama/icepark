@@ -884,3 +884,9 @@
 .admission-band-grid .wristband-display { padding:20px; background:#edf8fd; border-color:#9ed6e9; }
 .admission-band-grid .wristband-number,.admission-band-grid .wristband-end { font-size:clamp(36px,4.5vw,64px); }
 @media(max-width:600px) { .admission-band-grid .wristband-display { gap:12px; padding:16px; } }
+
+/* Premium reception number: dark gold keeps text readable on light cards. */
+.premium-ticket-number{color:#85600c!important;font-weight:800}
+input.premium-ticket-number:disabled{-webkit-text-fill-color:#85600c;opacity:1}
+
+.ticket-number{white-space:nowrap}.ticket-crown-slot{display:inline-block;width:1.25em;margin-right:6px;line-height:1;text-align:center;vertical-align:baseline}
