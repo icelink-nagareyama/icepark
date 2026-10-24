@@ -901,7 +901,7 @@
     if (!queue.children.length) queue.textContent = '待機中・呼出中のお客様はいません。';
     var box = document.getElementById('deskOnSite'); box.replaceChildren();
     var search = document.getElementById('deskExitSearch').value.trim().toUpperCase();
-    var soon=[];snapshot.onSite.forEach(function(q){q.bands.forEach(function(b){if(b.exitScheduledAt&&Number.isFinite(new Date(b.exitScheduledAt).getTime()))soon.push({ticket:q.ticketNo,hasPremium:q.hasPremium,band:b});});});
+    var soon=[];snapshot.onSite.forEach(function(q){q.bands.forEach(function(b){if(b.exitScheduledAt&&Number.isFinite(new Date(b.exitScheduledAt).getTime()))soon.push({ticket:q.ticketNo,band:b});});});
     soon.sort(function(a,b){return new Date(a.band.exitScheduledAt)-new Date(b.band.exitScheduledAt)||Number(a.ticket)-Number(b.ticket)||a.band.bandNo.localeCompare(b.band.bandNo);});
     if(!search&&soon.length){
       var guide=document.createElement('section');guide.className='desk-exit-soon';guide.setAttribute('aria-label','退場予定が近い方');
@@ -909,7 +909,7 @@
       soon.slice(0,10).forEach(function(p){
         var b=p.band,timing=b.overMinutes>0?'超過 '+b.overMinutes+'分':b.remainingMinutes===0?'退場予定時刻です':'残り '+b.remainingMinutes+'分';
         var r=row('受付 '+p.ticket+' ／ '+(b.memberType==='ADULT'?'大人':b.memberType==='CHILD'?'子供':'利用者'),(b.exitScheduledLabel||'')+' 退場予定 ／ バンド '+bandDisplayNo_(b.bandNo)+' ／ '+timing);
-        r.label.replaceChildren(document.createTextNode('受付 '),premiumTicketNumber_(p.ticket,p.hasPremium),document.createTextNode(' ／ '+(b.memberType==='ADULT'?'大人':b.memberType==='CHILD'?'子供':'利用者')));
+        r.label.replaceChildren(document.createTextNode('受付 '),premiumTicketNumber_(p.ticket,b.premium===true),document.createTextNode(' ／ '+(b.memberType==='ADULT'?'大人':b.memberType==='CHILD'?'子供':'利用者')+'・'+bandPassLabel_(b)));
         r.element.className='desk-exit-person';
         button(r.actions,b.overtimeCharge>0?'徴収確認・退場':'退場','exitWristbandAndFinalize',[b.bandNo,'',staffId],'exit:'+b.bandNo);
         r.actions.lastElementChild.setAttribute('aria-label','受付 '+p.ticket+'、バンド '+bandDisplayNo_(b.bandNo)+' の退場を確認');
@@ -924,7 +924,7 @@
       r.label.replaceChildren(document.createTextNode('受付 '),premiumTicketNumber_(q.ticketNo,q.hasPremium));
       button(r.actions,'未退場の全員（'+q.bands.length+'人）を退場','exitTicketAndFinalize',[q.ticketNo,staffId],'group-exit:'+q.ticketNo);
       bands.forEach(function (b) {
-        var timing=document.createElement('div');timing.innerHTML=timeMeterHtml(b);r.actions.appendChild(timing);
+        var timing=document.createElement('div');timing.innerHTML=bandPassLabelHtml_(b)+timeMeterHtml(b);r.actions.appendChild(timing);
         button(r.actions,'バンド '+bandDisplayNo_(b.bandNo) + (b.overtimeCharge>0?' ¥'+b.overtimeCharge.toLocaleString()+' 徴収・退場':' 退場'),'exitWristbandAndFinalize',[b.bandNo,'',staffId],'exit:' + b.bandNo);
         if(b.overtimeCharge>0){r.actions.lastElementChild.classList.remove('btn-outline');r.actions.lastElementChild.classList.add('btn-danger');}
       });
