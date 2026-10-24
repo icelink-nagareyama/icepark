@@ -45,10 +45,11 @@ var logoTemplate=document.createElement("template");logoTemplate.id="appLogoTemp
     endLabel.className='wristband-display-label';endLabel.textContent='終了時刻';time.className='wristband-end';time.textContent=bandEndLabel_(band);
     end.appendChild(endLabel);end.appendChild(time);box.appendChild(number);box.appendChild(end);return box.outerHTML;
   }
+  function premiumTicketNumber_(value,premium) {var n=document.createElement('span'),number=document.createElement('span'),crown=document.createElement('span');n.className='ticket-number';number.className='ticket-number-value';number.textContent=String(value==null?'':value);crown.className='ticket-crown-slot';crown.setAttribute('aria-hidden','true');if(premium===true){n.classList.add('premium-ticket-number');n.title='プレミアム利用者を含む受付';n.setAttribute('aria-label','受付番号 '+number.textContent+'、プレミアム利用者を含みます');crown.classList.add('premium-ticket-crown');crown.textContent='👑';}n.appendChild(crown);n.appendChild(number);return n;}
   function renderAdmissionBands_(host,result) {
-    host.replaceChildren();var title=document.createElement('div');title.textContent='受付 '+result.ticketNo+' の入場を確定しました';host.appendChild(title);
+    host.replaceChildren();var title=document.createElement('div');title.appendChild(document.createTextNode('受付 '));title.appendChild(premiumTicketNumber_(result.ticketNo,result.hasPremium===true||(result.bandAssignments||[]).some(function(a){return a.premium;})));title.appendChild(document.createTextNode(' の入場を確定しました'));host.appendChild(title);
     var grid=document.createElement('div');grid.className='admission-band-grid';
-    (result.bandNumbers||[]).forEach(function(number){var card=document.createElement('div');card.innerHTML=bandIdentityHtml_({bandNo:number,exitScheduledAt:result.exitScheduledAt});grid.appendChild(card.firstElementChild);});host.appendChild(grid);
+    (result.bandNumbers||[]).forEach(function(number){var card=document.createElement('div');card.innerHTML=bandIdentityHtml_({bandNo:number,exitScheduledAt:result.exitScheduledAt});var identity=card.firstElementChild,assignment=(result.bandAssignments||[]).filter(function(a){return a.bandNo===number;})[0];if(assignment&&assignment.premium){var label=document.createElement('p');label.style.cssText='font-size:14px;line-height:1.5;margin:8px 0 0;grid-column:1/-1;overflow-wrap:anywhere';label.textContent='プレミアム対象：'+assignment.holderName+'様へ、このバンドをお渡しください';identity.appendChild(label);}grid.appendChild(identity);});host.appendChild(grid);
   }
   function confirmExitPayment(bandNo,onSuccess,onFailure,groupTicket){
     if(Object.keys(exitPaymentDialogs_).length)return;exitPaymentDialogs_[bandNo]=true;
