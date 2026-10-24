@@ -153,9 +153,9 @@
     }
     function render(list) {
       var savedInputs={};document.querySelectorAll('.extend-min').forEach(function(e){savedInputs[e.dataset.ticket]=e.value;});
-      var upcoming=[];list.forEach(function(q){q.bands.forEach(function(w){if(w.exitScheduledAt)upcoming.push({ticket:q.ticketNo,band:w});});});
+      var upcoming=[];list.forEach(function(q){q.bands.forEach(function(w){if(w.exitScheduledAt)upcoming.push({ticket:q.ticketNo,hasPremium:q.hasPremium,band:w});});});
       upcoming.sort(function(a,b){return new Date(a.band.exitScheduledAt)-new Date(b.band.exitScheduledAt);});
-      document.getElementById('nearExitList').textContent=upcoming.slice(0,10).map(function(p){return '受付 '+p.ticket+'／'+'バンド '+bandDisplayNo_(p.band.bandNo)+'　'+p.band.exitScheduledLabel+'　'+bandTimeLabel(p.band);}).join('\n')||'退場予定のある在場者はいません。';
+      var nearBox=document.getElementById('nearExitList');nearBox.replaceChildren();upcoming.slice(0,10).forEach(function(p,i){if(i)nearBox.appendChild(document.createTextNode('\n'));nearBox.appendChild(document.createTextNode('受付 '));nearBox.appendChild(premiumTicketNumber_(p.ticket,p.hasPremium));nearBox.appendChild(document.createTextNode('／バンド '+bandDisplayNo_(p.band.bandNo)+'　'+p.band.exitScheduledLabel+'　'+bandTimeLabel(p.band)));});if(!upcoming.length)nearBox.textContent='退場予定のある在場者はいません。';
       renderOnSiteKpi_('totalTag',list.length,'組');
       renderOnSiteKpi_('layoutOnSitePeople',list.reduce(function(n,q){return n+q.bands.length;},0),'名');
       renderOnSiteKpi_('layoutNearExitPeople',Math.min(10,upcoming.length),'名');
@@ -178,7 +178,7 @@
 
         card.innerHTML =
           '<div class="list-row-top">' +
-            '<div class="list-row-ticket">' + q.ticketNo + '</div>' +
+            '<div class="list-row-ticket">' + premiumTicketNumber_(q.ticketNo,q.hasPremium).outerHTML + '</div>' +
             overBadge(q.overMinutes) +
             '<button class="btn btn-sm all-exit-btn" data-ticket="'+q.ticketNo+'">未退場の全員（'+q.bands.length+'人）を退場</button>'+
           '</div>' +
