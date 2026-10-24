@@ -890,3 +890,5 @@
 input.premium-ticket-number:disabled{-webkit-text-fill-color:#85600c;opacity:1}
 
 .ticket-number{white-space:nowrap}.ticket-crown-slot{display:inline-block;width:1.25em;margin-right:6px;line-height:1;text-align:center;vertical-align:baseline}
+
+.premium-ticket-crown{transform:translateY(-.1em)}
