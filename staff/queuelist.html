@@ -381,7 +381,7 @@
       });
     });
 
-    function resetForm() {
+    function resetForm() {document.getElementById('formTicketNo').classList.remove('premium-ticket-number');
       receptionVersion = ''; receptionOperation = null; receptionSubmission = null; recoveryTicket = '';
       receptionCanEdit = true;
       setReceptionFieldsLocked(false);
@@ -412,7 +412,7 @@
       receptionCanEdit = q.editAllowed !== false;
       document.getElementById('submitBtn').disabled = !receptionCanEdit;
       if (!receptionCanEdit) receptionShowError(q.editBlockedReason);
-      document.getElementById('formTicketNo').value = q.ticketNo;
+      document.getElementById('formTicketNo').value = q.ticketNo;document.getElementById('formTicketNo').classList.toggle('premium-ticket-number',q.hasPremium===true);
       document.getElementById('customerName').value = q.customerName || '';
       document.getElementById('adults').value = q.adultCount || 0;
       document.getElementById('children').value = q.childCount || 0;
@@ -505,7 +505,7 @@
         document.getElementById('receptionRecovery').style.display = 'none';
         document.getElementById('submitBtn').disabled = false;
         showCard('resultCard');
-        document.getElementById('resultTicketNo').textContent = res.ticketNo;
+        document.getElementById('resultTicketNo').replaceChildren(premiumTicketNumber_(res.ticketNo,res.hasPremium));
         document.getElementById('resultDetail').textContent =
           '大人' + res.adults + '名・子供' + res.children + '名（' + (res.isNight ? 'ナイター料金' : '通常料金')
           + '）　お支払い金額 ¥' + res.fee.total.toLocaleString()
@@ -607,7 +607,7 @@ function renderQueueReview(){
  updateQueueBatchControls_();
  if(!queueSelected)return;
  var q=queueSelected,valid=['WAITING','CALLED'].indexOf(q.status)!==-1,consentOK=['PAPER','SUBMITTED'].indexOf(q.consentStatus)!==-1;
- document.getElementById('queueReview').style.display='block';document.getElementById('queueReviewTitle').textContent='受付 '+q.ticketNo+' の内容確認';
+ document.getElementById('queueReview').style.display='block';var heading=document.getElementById('queueReviewTitle');heading.replaceChildren(document.createTextNode('受付 '),premiumTicketNumber_(q.ticketNo,q.hasPremium),document.createTextNode(' の内容確認'));
  document.getElementById('queueReviewContent').textContent=(q.customerName||'お名前未入力')+'\n大人 '+q.adultCount+'名／子供 '+q.childCount+'名（計'+q.partySize+'名）'+(q.isNighter?'・ナイター':'・通常料金')+
  '\n手袋 S '+(q.confirmedGlovesS||0)+'／L '+(q.confirmedGlovesL||0)+'・マイシューズ '+(q.confirmedMyShoesCount||0)+
  '\n補助具 '+q.aidCount+'台／貸出番号 '+(q.aidNumbers.length?q.aidNumbers.join('、'):'なし')+
@@ -632,7 +632,7 @@ function viewQueueTicket(ticket){
 function queueButton(parent,label,cls,ticket,fn){var b=document.createElement('button');b.type='button';b.className='btn btn-outline btn-sm '+cls;b.dataset.ticket=ticket;b.textContent=label;b.addEventListener('click',function(){fn(ticket);});parent.appendChild(b);}
 function renderQueueRows(list,id){
  var box=document.getElementById(id);box.replaceChildren();document.getElementById(id==='calledList'?'calledTotalTag':'waitingTotalTag').textContent=list.length+'組・'+list.reduce(function(n,q){return n+Number(q.partySize||0);},0)+'名';
- list.forEach(function(q){var r=document.createElement('div');r.className='list-row';var t=document.createElement('div');t.className='list-row-ticket';t.textContent=q.ticketNo+' '+(q.customerName||'');var d=document.createElement('div');d.textContent='大人'+q.adultCount+'・子供'+q.childCount+'／'+(q.receptionComplete?'受付確定済み':'受付・料金未確定')+'／同意書 '+(QUEUE_CONSENT_LABEL[q.consentStatus]||'未確認');var a=document.createElement('div');a.className='queue-actions';
+ list.forEach(function(q){var r=document.createElement('div');r.className='list-row';var t=document.createElement('div');t.className='list-row-ticket';t.appendChild(premiumTicketNumber_(q.ticketNo,q.hasPremium));t.appendChild(document.createTextNode(' '+(q.customerName||'')));var d=document.createElement('div');d.textContent='大人'+q.adultCount+'・子供'+q.childCount+'／'+(q.receptionComplete?'受付確定済み':'受付・料金未確定')+'／同意書 '+(QUEUE_CONSENT_LABEL[q.consentStatus]||'未確認');var a=document.createElement('div');a.className='queue-actions';
  queueButton(a,'内容確認・修正・入場','review-btn',q.ticketNo,viewQueueTicket);
  if(id==='waitingList')queueButton(a,'呼び出す','call-btn',q.ticketNo,function(n){runQueueAction('callTicketManually',[n,staffId],'call:'+n);});
  queueButton(a,'取消','cancel-btn',q.ticketNo,function(n){if(window.confirm(n+' を取消しますか？'))runQueueAction('cancelQueueTicket',[n,staffId,'受付一覧から取消'],'cancel:'+n);});r.appendChild(t);r.appendChild(d);r.appendChild(a);box.appendChild(r);
