@@ -480,7 +480,7 @@
       });
     });
 
-    function resetForm() {
+    function resetForm() {document.getElementById('formTicketNo').classList.remove('premium-ticket-number');
       receptionVersion = ''; receptionOperation = null; receptionSubmission = null; recoveryTicket = '';
       receptionCanEdit = true;
       setReceptionFieldsLocked(false);
@@ -511,7 +511,7 @@
       receptionCanEdit = q.editAllowed !== false;
       document.getElementById('submitBtn').disabled = !receptionCanEdit;
       if (!receptionCanEdit) receptionShowError(q.editBlockedReason);
-      document.getElementById('formTicketNo').value = q.ticketNo;
+      document.getElementById('formTicketNo').value = q.ticketNo;document.getElementById('formTicketNo').classList.toggle('premium-ticket-number',q.hasPremium===true);
       document.getElementById('customerName').value = q.customerName || '';
       document.getElementById('adults').value = q.adultCount || 0;
       document.getElementById('children').value = q.childCount || 0;
@@ -604,7 +604,7 @@
         document.getElementById('receptionRecovery').style.display = 'none';
         document.getElementById('submitBtn').disabled = false;
         showCard('resultCard');
-        document.getElementById('resultTicketNo').textContent = res.ticketNo;
+        document.getElementById('resultTicketNo').replaceChildren(premiumTicketNumber_(res.ticketNo,res.hasPremium));
         document.getElementById('resultDetail').textContent =
           '大人' + res.adults + '名・子供' + res.children + '名（' + (res.isNight ? 'ナイター料金' : '通常料金')
           + '）　お支払い金額 ¥' + res.fee.total.toLocaleString()
