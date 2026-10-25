@@ -288,6 +288,11 @@ body.mp-dark { background:radial-gradient(ellipse at top,#123248,#021522 65%); }
 @media(prefers-reduced-motion:reduce) { .btn,#customerPortal .cp-nav a { transition:none; } }
 
 
+
+/* Instructions shown only on an active premium pass card. */
+.owned-pass-wrap .mp-reentry-note { margin: 0 18px 18px; padding: 16px; border: 1px solid var(--pass-border); border-radius: 12px; background: #0d2c3d; color: #ffe9b3; font-size: 15px; line-height: 1.85; }
+.owned-pass-wrap .mp-reentry-note strong { display: block; font-size: 16px; line-height: 1.8; }
+.owned-pass-wrap .mp-reentry-note p { margin: 10px 0 0; font-size: 14px; line-height: 1.85; }
 </style>
 </head>
 <body>
@@ -683,7 +688,14 @@ document.querySelector(".owned-pass-wrap").appendChild(document.createRange().cr
       function entry(label,value){el('dt','',label,dl);el('dd','',value,dl);}
       entry('お名前',p.holderName||'—');entry('有効期限',p.validTo?String(p.validTo).replace(/-/g,'/'):'—');
       el('p','mp-meta',raw+' ／ パス番号 '+(p.passNo||'—')+(p.validFrom?' ／ 利用開始 '+String(p.validFrom).replace(/-/g,'/'):'')+' ／ 利用可能日：'+(p.usableDays||'全日'),info);
-      if(Array.isArray(p.rules)&&p.rules.length){var wrap=el('div','mp-rule-wrap',undefined,card),details=el('details','pass-rules',undefined,wrap);el('summary','','このパスの利用ルール',details);var list=el('ul','',undefined,details);p.rules.forEach(function(rule){if(kind==='premium'&&rule==='平日は入場回数無制限、土日祝は1日2回までです。'){el('li','','平日は期間中何度でも利用可能です。',list);el('li','','2回目以降は、満員時は順番にお待ちいただきます。',list);el('li','','土日祝は1日2回までです。',list);}else{el('li','',rule,list);}});}
+      if(Array.isArray(p.rules)&&p.rules.length){var wrap=el('div','mp-rule-wrap',undefined,card),details=el('details','pass-rules',undefined,wrap);el('summary','','このパスの利用ルール',details);var list=el('ul','',undefined,details);p.rules.forEach(function(rule){if(kind==='premium'&&rule==='平日は入場回数無制限、土日祝は1日2回までです。'){el('li','','平日は期間中何度でも利用可能です。',list);el('li','','予約した回は、同日2回目でも順番待ち不要です。予約のない回は、満員時に順番待ちとなります。',list);el('li','','土日祝は1日2回までです。',list);}else{el('li','',rule,list);}});}
+      if(kind==='premium'&&p.statusLabel==='有効'){
+        var reentryNote=el('div','mp-reentry-note',undefined,card);reentryNote.setAttribute('role','note');
+        el('strong','','土日祝料金の日は、シューズを履いたまま2回目の手続きができます。',reentryNote);
+        el('p','','1回目の終了時刻までにリンクから出て受付へお越しください。スタッフが「2回目を滑走」を登録します。退場・再受付をせず、元の終了時刻から60分追加します（閉場時刻まで）。手続きが済んでから、再びリンクへお入りください。',reentryNote);
+        el('p','','予約した回は、同日2回目でも順番待ち不要です。予約のない回は、満員時に順番待ちとなります。',reentryNote);
+        el('p','','土日祝料金の営業日（冬休み期間を含む）は、予約の有無にかかわらず1日2回までです。補助具の返却予定は別です。平日の続けての利用は、退場・再受付の手続きをお願いします。',reentryNote);
+      }
       if(kind==='premium'&&p.canReserve&&pass&&p.passNo===pass.passNo){var a=el('a','mp-book','滑走予約をする',card);a.href='#reservationForm';a.addEventListener('click',function(){setTimeout(function(){$('reserveDate').focus({preventScroll:true});},0);});}
       el('p','mp-present','受付でこの画面をご提示ください',card);
     });
