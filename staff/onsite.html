@@ -20,7 +20,8 @@
   .onsite-aid-return{min-height:44px;min-width:88px;white-space:nowrap}.onsite-aid-loan-info{flex:1;justify-content:flex-end}
   .onsite-aid-deadline{color:#126e95;font-size:16px;font-weight:700;font-variant-numeric:tabular-nums}.onsite-aid-remaining{color:#126e95;font-weight:700}.onsite-aid-deadline,.onsite-aid-remaining,.onsite-aid-warning{white-space:nowrap}
   @media(max-width:600px){.onsite-aid-summary{padding:12px}.onsite-aid-summary-row{gap:10px 16px}.onsite-aid-summary .btn{margin-left:0}.onsite-aid-tag{margin:6px 0 0;display:table}.onsite-aid-loans{padding:0 12px}}
-  </style>
+  .premium-session-badge{display:inline-flex;align-items:center;margin-left:8px;padding:3px 9px;border-radius:999px;border:1px solid #d8b260;background:#fff6df;color:#775209;font-size:14px;font-weight:700;white-space:nowrap}.band-actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}.second-session-btn{border-color:#bc9143;color:#775209;background:#fff9ed;min-height:44px}.second-session-btn:disabled{opacity:.6}
+@media(max-width:1100px){.band-row .band-actions{grid-column:2;grid-row:1}}@media(max-width:600px){.band-actions{max-width:130px;flex-direction:column;align-items:stretch}.band-actions .btn{white-space:normal}}</style>
 </head>
 <body data-layout-page="OnSite" class="layout-refresh">
   <section id="operationBar" class="operation-bar" aria-label="本日の運営情報">
@@ -155,7 +156,7 @@
       var savedInputs={};document.querySelectorAll('.extend-min').forEach(function(e){savedInputs[e.dataset.ticket]=e.value;});
       var upcoming=[];list.forEach(function(q){q.bands.forEach(function(w){if(w.exitScheduledAt)upcoming.push({ticket:q.ticketNo,band:w});});});
       upcoming.sort(function(a,b){return new Date(a.band.exitScheduledAt)-new Date(b.band.exitScheduledAt);});
-      var nearBox=document.getElementById('nearExitList');nearBox.replaceChildren();upcoming.slice(0,10).forEach(function(p,i){if(i)nearBox.appendChild(document.createTextNode('\n'));nearBox.appendChild(document.createTextNode('受付 '));nearBox.appendChild(premiumTicketNumber_(p.ticket,p.band.premium===true));nearBox.appendChild(document.createTextNode('／バンド '+bandDisplayNo_(p.band.bandNo)+'（'+bandPassLabel_(p.band)+'）　'+p.band.exitScheduledLabel+'　'+bandTimeLabel(p.band)));});if(!upcoming.length)nearBox.textContent='退場予定のある在場者はいません。';
+      var nearBox=document.getElementById('nearExitList');nearBox.replaceChildren();upcoming.slice(0,10).forEach(function(p,i){if(i)nearBox.appendChild(document.createTextNode('\n'));nearBox.appendChild(document.createTextNode('受付 '));nearBox.appendChild(premiumTicketNumber_(p.ticket,p.band.premium===true));nearBox.appendChild(document.createTextNode('／バンド '+bandDisplayNo_(p.band.bandNo)+'（'+bandPassLabel_(p.band)+(p.band.sessionNumber===2?'・2回目':'')+'）　'+p.band.exitScheduledLabel+'　'+bandTimeLabel(p.band)));});if(!upcoming.length)nearBox.textContent='退場予定のある在場者はいません。';
       renderOnSiteKpi_('totalTag',list.length,'組');
       renderOnSiteKpi_('layoutOnSitePeople',list.reduce(function(n,q){return n+q.bands.length;},0),'名');
       renderOnSiteKpi_('layoutNearExitPeople',Math.min(10,upcoming.length),'名');
@@ -170,9 +171,9 @@
         card.className = 'card';
         var bandsHtml = q.bands.map(function (w) {
           return '<div class="list-row band-row">' +
-              '<div class="band-id">' + bandDisplayNo_(w.bandNo) + '（' + memberLabel(w.memberType) + '）' + bandPassLabelHtml_(w) + '</div>' +
+              '<div class="band-id">' + bandDisplayNo_(w.bandNo) + '（' + memberLabel(w.memberType) + '）' + bandPassLabelHtml_(w) + (w.sessionNumber===2?'<span class="premium-session-badge">2回目</span>':'') + '</div>' +
               '<div class="band-timing">'+timeMeterHtml(w)+'</div>'+
-              '<button class="btn '+(w.overtimeCharge>0?'btn-danger':'btn-outline')+' btn-sm exit-btn" data-band="' + w.bandNo + '">'+(w.overtimeCharge>0?'¥'+w.overtimeCharge.toLocaleString()+' 徴収・退場':'退場')+'</button>' +
+              '<div class="band-actions">'+(w.secondSessionOffered&&w.sessionNumber!==2&&!w.secondSessionRegistered?'<button type="button" class="btn btn-outline btn-sm second-session-btn" data-band="'+w.bandNo+'">2回目を滑走</button>':'')+'<button class="btn '+(w.overtimeCharge>0?'btn-danger':'btn-outline')+' btn-sm exit-btn" data-band="' + w.bandNo + '">'+(w.overtimeCharge>0?'¥'+w.overtimeCharge.toLocaleString()+' 徴収・退場':'退場')+'</button></div>' +
           '</div>';
         }).join('');
 
@@ -205,6 +206,7 @@
       document.querySelectorAll('.exit-btn').forEach(function (btn) {
         btn.addEventListener('click', function () { exitBand(btn.getAttribute('data-band')); });
       });
+      document.querySelectorAll('.second-session-btn').forEach(function(btn){btn.disabled=!!secondSessionBusy_[btn.dataset.band];btn.addEventListener('click',function(){registerSecondSession_(btn.dataset.band);});});
       document.querySelectorAll('.extend-btn').forEach(function (btn) {
         btn.addEventListener('click', function () {
           var ticketNo = btn.getAttribute('data-ticket');
@@ -216,6 +218,21 @@
       });
     }
 
+    var secondSessionBusy_=Object.create(null);
+    function registerSecondSession_(bandNo) {
+      if(secondSessionBusy_[bandNo])return;secondSessionBusy_[bandNo]=true;clearError();
+      document.querySelectorAll('.second-session-btn').forEach(function(b){if(b.dataset.band===bandNo)b.disabled=true;});
+      function finish(){delete secondSessionBusy_[bandNo];loadList();}
+      function failed(err){finish();showError((err&&err.message?err.message:err)+'。一覧の「2回目」と終了予定を確認してください。');}
+      staffRun().withSuccessHandler(function(quote){
+        if(quote.alreadyRegistered){finish();window.alert('2回目は登録済みです。終了予定 '+quote.exitScheduledLabel);return;}
+        if(!window.confirm('バンド '+bandDisplayNo_(bandNo)+' を2回目として登録します。終了予定 '+quote.exitScheduledLabel+'。'+quote.notice)){finish();return;}
+        staffRun(makeStaffOperation_()).withSuccessHandler(function(result){finish();window.alert('2回目を登録しました。終了予定 '+result.exitScheduledLabel);}).withFailureHandler(function(err){
+          // Read-only reconciliation even if the committed append succeeded but its response was lost.
+          staffRun().withSuccessHandler(function(saved){if(saved.alreadyRegistered){finish();window.alert('2回目の登録を確認しました。終了予定 '+saved.exitScheduledLabel);}else failed(err);}).withFailureHandler(function(){failed(err);}).getPremiumSecondSessionQuote(bandNo);
+        }).startPremiumSecondSession(bandNo,quote.version);
+      }).withFailureHandler(failed).getPremiumSecondSessionQuote(bandNo);
+    }
     function exitBand(bandNo) {
       clearError();
       confirmExitPayment(bandNo,function(res){
