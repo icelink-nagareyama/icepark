@@ -21,7 +21,7 @@
   .onsite-aid-deadline{color:#126e95;font-size:16px;font-weight:700;font-variant-numeric:tabular-nums}.onsite-aid-remaining{color:#126e95;font-weight:700}.onsite-aid-deadline,.onsite-aid-remaining,.onsite-aid-warning{white-space:nowrap}
   @media(max-width:600px){.onsite-aid-summary{padding:12px}.onsite-aid-summary-row{gap:10px 16px}.onsite-aid-summary .btn{margin-left:0}.onsite-aid-tag{margin:6px 0 0;display:table}.onsite-aid-loans{padding:0 12px}}
   .premium-session-badge{display:inline-flex;align-items:center;margin-left:8px;padding:3px 9px;border-radius:999px;border:1px solid #d8b260;background:#fff6df;color:#775209;font-size:14px;font-weight:700;white-space:nowrap}.band-actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}.second-session-btn{border-color:#bc9143;color:#775209;background:#fff9ed;min-height:44px}.second-session-btn:disabled{opacity:.6}
-@media(max-width:1100px){.band-row .band-actions{grid-column:2;grid-row:1}}@media(max-width:600px){.band-actions{max-width:130px;flex-direction:column;align-items:stretch}.band-actions .btn{white-space:normal}}</style>
+@media(max-width:1100px){.band-row .band-actions{grid-column:2;grid-row:1}}@media(max-width:600px){.band-actions{max-width:130px;flex-direction:column;align-items:stretch}.band-actions .btn{white-space:normal}}.second-session-control{display:flex;flex-direction:column;align-items:flex-start;gap:7px;margin-top:10px;max-width:100%;font-weight:500}.second-session-control .second-session-btn{font-size:14px;padding:8px 12px;min-height:44px;max-width:100%;white-space:normal;text-align:center}.second-session-feedback{margin:0;font-size:13px;line-height:1.5;overflow-wrap:anywhere;color:#526c83}.second-session-feedback[data-kind=error]{color:#a22232}.second-session-confirm{width:100%;padding:10px;border:1px solid #dfc68b;border-radius:8px;background:#fff9ed;box-sizing:border-box}.second-session-confirm p{font-size:13px;line-height:1.5;margin:0 0 8px}.second-session-confirm-actions{display:flex;flex-wrap:wrap;gap:6px}.second-session-confirm .btn{min-height:44px;white-space:normal}.second-session-control [hidden]{display:none!important}</style>
 </head>
 <body data-layout-page="OnSite" class="layout-refresh">
   <section id="operationBar" class="operation-bar" aria-label="本日の運営情報">
@@ -171,9 +171,9 @@
         card.className = 'card';
         var bandsHtml = q.bands.map(function (w) {
           return '<div class="list-row band-row">' +
-              '<div class="band-id">' + bandDisplayNo_(w.bandNo) + '（' + memberLabel(w.memberType) + '）' + bandPassLabelHtml_(w) + (w.sessionNumber===2?'<span class="premium-session-badge">2回目</span>':'') + '</div>' +
+              '<div class="band-id">' + bandDisplayNo_(w.bandNo) + '（' + memberLabel(w.memberType) + '）' + bandPassLabelHtml_(w) + (w.sessionNumber===2?'<span class="premium-session-badge">2回目</span>':'') + secondSessionControlHtml_(w) + '</div>' +
               '<div class="band-timing">'+timeMeterHtml(w)+'</div>'+
-              '<div class="band-actions">'+(w.secondSessionOffered&&w.sessionNumber!==2&&!w.secondSessionRegistered?'<button type="button" class="btn btn-outline btn-sm second-session-btn" data-band="'+w.bandNo+'">2回目を滑走</button>':'')+'<button class="btn '+(w.overtimeCharge>0?'btn-danger':'btn-outline')+' btn-sm exit-btn" data-band="' + w.bandNo + '">'+(w.overtimeCharge>0?'¥'+w.overtimeCharge.toLocaleString()+' 徴収・退場':'退場')+'</button></div>' +
+              '<div class="band-actions">'+'<button class="btn '+(w.overtimeCharge>0?'btn-danger':'btn-outline')+' btn-sm exit-btn" data-band="' + w.bandNo + '">'+(w.overtimeCharge>0?'¥'+w.overtimeCharge.toLocaleString()+' 徴収・退場':'退場')+'</button></div>' +
           '</div>';
         }).join('');
 
@@ -206,7 +206,7 @@
       document.querySelectorAll('.exit-btn').forEach(function (btn) {
         btn.addEventListener('click', function () { exitBand(btn.getAttribute('data-band')); });
       });
-      document.querySelectorAll('.second-session-btn').forEach(function(btn){btn.disabled=!!secondSessionBusy_[btn.dataset.band];btn.addEventListener('click',function(){registerSecondSession_(btn.dataset.band);});});
+      document.querySelectorAll('.second-session-control').forEach(function(box){var no=box.dataset.band;box.querySelector('.second-session-btn').addEventListener('click',function(){registerSecondSession_(no);});box.querySelector('.second-session-save').addEventListener('click',function(){saveSecondSession_(no);});box.querySelector('.second-session-cancel').addEventListener('click',function(){cancelSecondSession_(no);});});updateSecondSessionControls_();
       document.querySelectorAll('.extend-btn').forEach(function (btn) {
         btn.addEventListener('click', function () {
           var ticketNo = btn.getAttribute('data-ticket');
@@ -218,22 +218,63 @@
       });
     }
 
-    var secondSessionBusy_=Object.create(null);
-    function registerSecondSession_(bandNo) {
-      if(secondSessionBusy_[bandNo])return;secondSessionBusy_[bandNo]=true;clearError();
-      document.querySelectorAll('.second-session-btn').forEach(function(b){if(b.dataset.band===bandNo)b.disabled=true;});
-      function finish(){delete secondSessionBusy_[bandNo];loadList();}
-      function failed(err){finish();showError((err&&err.message?err.message:err)+'。一覧の「2回目」と終了予定を確認してください。');}
-      staffRun().withSuccessHandler(function(quote){
-        if(quote.alreadyRegistered){finish();window.alert('2回目は登録済みです。終了予定 '+quote.exitScheduledLabel);return;}
-        if(!window.confirm('バンド '+bandDisplayNo_(bandNo)+' を2回目として登録します。終了予定 '+quote.exitScheduledLabel+'。'+quote.notice)){finish();return;}
-        staffRun(makeStaffOperation_()).withSuccessHandler(function(result){finish();window.alert('2回目を登録しました。終了予定 '+result.exitScheduledLabel);}).withFailureHandler(function(err){
-          // Read-only reconciliation even if the committed append succeeded but its response was lost.
-          staffRun().withSuccessHandler(function(saved){if(saved.alreadyRegistered){finish();window.alert('2回目の登録を確認しました。終了予定 '+saved.exitScheduledLabel);}else failed(err);}).withFailureHandler(function(){failed(err);}).getPremiumSecondSessionQuote(bandNo);
-        }).startPremiumSecondSession(bandNo,quote.version);
-      }).withFailureHandler(failed).getPremiumSecondSessionQuote(bandNo);
+    var secondSessionStates_=Object.create(null);
+    function secondSessionControlHtml_(w) {
+      if(!w.secondSessionOffered||w.sessionNumber===2||w.secondSessionRegistered)return '';
+      return '<div class="second-session-control" data-band="'+w.bandNo+'" data-overdue="'+(w.overMinutes>0?'yes':'no')+'">'+
+        '<button type="button" class="btn btn-outline btn-sm second-session-btn" data-band="'+w.bandNo+'">2回目を滑走</button>'+
+        '<p class="second-session-feedback" role="status" aria-live="polite" hidden></p>'+
+        '<div class="second-session-confirm" role="group" aria-label="2回目の登録確認" hidden><p></p><div class="second-session-confirm-actions">'+
+        '<button type="button" class="btn btn-sm second-session-save">この内容で登録</button>'+
+        '<button type="button" class="btn btn-outline btn-sm second-session-cancel">戻る</button></div></div></div>';
     }
-    function exitBand(bandNo) {
+    function updateSecondSessionControls_() {
+      document.querySelectorAll('.second-session-control').forEach(function(box){
+        var state=secondSessionStates_[box.dataset.band]||{},overdue=box.dataset.overdue==='yes';
+        var button=box.querySelector('.second-session-btn'),feedback=box.querySelector('.second-session-feedback'),confirm=box.querySelector('.second-session-confirm');
+        button.disabled=!!state.busy||overdue;button.setAttribute('aria-busy',state.busy?'true':'false');
+        button.textContent=state.phase==='saving'?'登録中…':state.phase==='reconciling'?'保存結果を確認中…':state.phase==='checking'?'確認中…':state.phase==='confirm'?'内容を確認してください':'2回目を滑走';
+        feedback.textContent=state.message||(overdue?'終了予定時刻を過ぎているため登録できません。退場・料金を確認してください。':'');
+        feedback.hidden=!feedback.textContent;feedback.dataset.kind=state.error||overdue?'error':'info';feedback.setAttribute('role',state.error?'alert':'status');
+        confirm.hidden=state.phase!=='confirm';confirm.querySelector('p').textContent=state.quote?'新しい終了予定：'+state.quote.exitScheduledLabel+'。同日2回目として登録します（閉場時刻まで）。補助具の返却予定は変わりません。':'';
+        confirm.querySelector('.second-session-save').disabled=state.phase!=='confirm';
+      });
+    }
+    function secondSessionRequest_(action,args,operation,success,failure) {
+      try {
+        var runner=staffRun(operation).withSuccessHandler(function(value){try{success(value);}catch(err){failure(err);}}).withFailureHandler(failure);
+        runner[action].apply(runner,args);
+      } catch(err) {failure(err);}
+    }
+    function failSecondSession_(bandNo,err) {
+      var state=secondSessionStates_[bandNo]||(secondSessionStates_[bandNo]={});
+      state.busy=false;state.phase='error';state.error=true;state.message=String(err&&err.message||err||'結果を確認できません。');if(/Failed to fetch|NetworkError|Load failed|network/i.test(state.message))state.message='通信に失敗しました。回線を確認して、もう一度お試しください。';
+      updateSecondSessionControls_();
+      if(!Array.from(document.querySelectorAll('.second-session-control')).some(function(b){return b.dataset.band===bandNo;}))showError(state.message);
+    }
+    function registerSecondSession_(bandNo) {
+      var state=secondSessionStates_[bandNo]||(secondSessionStates_[bandNo]={});if(state.busy)return;
+      state.busy=true;state.phase='checking';state.error=false;state.message='利用条件と終了予定時刻を確認しています…';clearError();updateSecondSessionControls_();
+      secondSessionRequest_('getPremiumSecondSessionQuote',[bandNo],null,function(quote){
+        if(!quote||!quote.exitScheduledLabel)throw Error('確認結果を取得できませんでした。もう一度お試しください。');
+        if(quote.alreadyRegistered){state.busy=false;state.phase='done';state.message='2回目は登録済みです。終了予定 '+quote.exitScheduledLabel;updateSecondSessionControls_();loadList();return;}
+        state.quote=quote;state.phase='confirm';state.message='終了予定を確認し、「この内容で登録」を押してください。';updateSecondSessionControls_();
+      },function(err){failSecondSession_(bandNo,err);});
+    }
+    function saveSecondSession_(bandNo) {
+      var state=secondSessionStates_[bandNo];if(!state||state.phase!=='confirm'||!state.quote)return;
+      state.phase='saving';state.message='2回目を登録しています…';try{state.operation=makeStaffOperation_();}catch(err){failSecondSession_(bandNo,err);return;}updateSecondSessionControls_();
+      function done(result){state.busy=false;state.phase='done';state.error=false;state.message='2回目を登録しました。終了予定 '+result.exitScheduledLabel;updateSecondSessionControls_();loadList();}
+      secondSessionRequest_('startPremiumSecondSession',[bandNo,state.quote.version],state.operation,done,function(err){
+        state.phase='reconciling';state.message='保存結果を確認しています。続けて登録を押さずにお待ちください。';updateSecondSessionControls_();
+        secondSessionRequest_('getPremiumSecondSessionQuote',[bandNo],null,function(saved){if(saved&&saved.alreadyRegistered)done(saved);else failSecondSession_(bandNo,err);},function(){failSecondSession_(bandNo,err);});
+      });
+    }
+    function cancelSecondSession_(bandNo) {
+      var state=secondSessionStates_[bandNo];if(!state||state.phase!=='confirm')return;
+      state.busy=false;state.phase='idle';state.error=false;state.message='登録を取りやめました。';state.quote=null;updateSecondSessionControls_();
+    }
+        function exitBand(bandNo) {
       clearError();
       confirmExitPayment(bandNo,function(res){
           loadList();
