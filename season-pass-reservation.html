@@ -294,8 +294,8 @@ body.mp-dark { background:radial-gradient(ellipse at top,#123248,#021522 65%); }
 <div class="wrap owned-pass-wrap">
   <div class="header">
     <div class="logo">EXCITING ICE PARK<small>IN NAGAREYAMA</small></div>
-    <h1 id="myPassHeading">保有パス</h1>
-    <span class="badge-premium">パス確認・プレミアム予約</span>
+    <h1 id="myPassHeading" class="hidden">保有パス</h1>
+    <span class="badge-premium hidden">パス確認・プレミアム予約</span>
   </div>
 
 
@@ -320,7 +320,7 @@ body.mp-dark { background:radial-gradient(ellipse at top,#123248,#021522 65%); }
 
 
 <div id="passSummary" class="hidden"><div id="passList"></div><button type="button" class="btn secondary" id="refreshPasses">パス情報を更新</button></div>
-  <section id="passLineAccountNotice" class="card" aria-label="LINEアカウントについて"><p class="muted">パスは受付時のLINEアカウントに紐づいております。</p></section>
+  <section id="passLineAccountNotice" class="card hidden" aria-label="LINEアカウントについて"><p class="muted">パスは受付時のLINEアカウントに紐づいております。</p></section>
 <div id="premiumNote" class="card hidden"><p class="muted">優先予約は有効なプレミアムパスをお持ちの方がご利用いただけます。</p></div>
 <section id="changeRecovery" class="card hidden" aria-labelledby="changeRecoveryTitle"><h2 id="changeRecoveryTitle" class="section-title">予約変更の保存結果を確認</h2><p id="changeRecoveryMessage" class="muted" role="status"></p><button type="button" id="checkChange" class="btn secondary">保存結果を確認する</button><button type="button" id="retryChange" class="btn secondary hidden">同じ変更を再送する</button></section><div id="mainCard" class="hidden">
     <p id="memberInfo" class="muted"></p>
@@ -569,6 +569,16 @@ document.querySelector(".owned-pass-wrap").appendChild(document.createRange().cr
   function $(id) { return document.getElementById(id); }
   function show(el) { el.classList.remove('hidden'); }
   function hide(el) { el.classList.add('hidden'); }
+  function showEntryHeading_(view) {
+    var labels={reception:'LINE事前受付',status:'受付・混雑状況',consent:'利用同意書',passapply:'シーズンパス申込'};
+    var owned=!Object.prototype.hasOwnProperty.call(labels,view);
+    $('myPassHeading').textContent=owned?'保有パス':labels[view];
+    show($('myPassHeading'));
+    document.title=(owned?'保有パス':labels[view])+' | エキサイティングアイスパークin流山';
+    var badge=document.querySelector('.owned-pass-wrap .badge-premium');
+    if(badge)badge.classList.toggle('hidden',!owned);
+    $('passLineAccountNotice').classList.toggle('hidden',!owned);
+  }
   function fatal(message) { hide($('loadingCard')); hide($('mainCard')); $('fatalMsg').textContent = message; show($('fatalCard')); }
   function error(message) { $('reserveError').textContent = message; show($('reserveError')); }
   function api(operation, data) {
@@ -766,18 +776,21 @@ document.querySelector(".owned-pass-wrap").appendChild(document.createRange().cr
     Promise.resolve().then(function () { return window.liff.init({liffId:LIFF_ID}); }).then(function () {
       if (initializationStopped) return;
       clearTimeout(timer);
+      var requestedView=new URLSearchParams(window.location.search).get('view');
+      var entryView=['consent','reception','status','passapply'].includes(requestedView)?requestedView:'';
+      showEntryHeading_(entryView);
       if (!window.liff.isLoggedIn()) {
         fatal('LINEへのログインが必要です。「LINEでログイン」を押してください。');
         var btn = document.createElement('button'); btn.className = 'btn'; btn.textContent = 'LINEでログイン';
         btn.addEventListener('click', function () {
           btn.disabled = true;
-          try { window.liff.login({redirectUri:window.location.origin + window.location.pathname + (['consent','reception','status','passapply'].includes(new URLSearchParams(window.location.search).get('view')) ? '?view='+encodeURIComponent(new URLSearchParams(window.location.search).get('view')) : '')}); }
+          try { window.liff.login({redirectUri:window.location.origin + window.location.pathname + (entryView ? '?view='+encodeURIComponent(entryView) : '')}); }
           catch (e) { btn.disabled = false; fatal('LINEログインを開始できませんでした。LINEから開き直してください。'); }
         });
         $('fatalCard').appendChild(btn); return;
       }
-              if (['consent','reception','status','passapply'].includes(new URLSearchParams(window.location.search).get('view'))) {
-          window.startCustomerPortal({view:new URLSearchParams(window.location.search).get('view'),liffId:LIFF_ID,baseUrl:BASE_URL});
+              if (entryView) {
+          window.startCustomerPortal({view:entryView,liffId:LIFF_ID,baseUrl:BASE_URL});
           return;
         }
 $('loadingCard').textContent = '保有パスを確認中…';
