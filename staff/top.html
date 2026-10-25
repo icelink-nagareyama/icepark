@@ -203,7 +203,22 @@
         <button class="btn mt-16" id="nextBtn" style="width:100%;">次のお客様を受付する</button>
       </div>
 <script>
+function PreschoolFields_(prefix,children,anchor){
+ var box=document.createElement('fieldset');box.className='preschool-check';box.style.cssText='min-width:0;margin:16px 0;padding:16px;border:1px solid #c8dce8;border-radius:12px;text-align:left';
+ box.innerHTML='<legend style="font-weight:700">未就学児（3歳〜小学校入学前）はいますか？ <span>必須</span></legend><div style="display:flex;flex-wrap:wrap;gap:12px"><label style="display:flex;align-items:center;gap:8px;min-height:44px"><input type="radio" name="'+prefix+'Preschool" value="NO" style="width:22px;height:22px">いません</label><label style="display:flex;align-items:center;gap:8px;min-height:44px"><input type="radio" name="'+prefix+'Preschool" value="YES" style="width:22px;height:22px">います</label></div><label class="guardian-check" hidden style="align-items:center;gap:8px;min-height:44px"><input type="checkbox" style="width:22px;height:22px;flex-shrink:0">18歳以上の保護者が同伴します</label><p style="font-size:14px;line-height:1.7;margin:8px 0">2歳以下は利用できません。未就学児はヘルメット・プロテクターの着用が必須です。</p><p class="preschool-error" role="alert" hidden style="color:#a22232;font-size:14px"></p>';
+ anchor.parentNode.insertBefore(box,anchor);var radios=Array.from(box.querySelectorAll('input[type=radio]')),guard=box.querySelector('input[type=checkbox]'),label=box.querySelector('.guardian-check'),err=box.querySelector('.preschool-error'),last=Number(children.value);
+ function sync(){var count=Number(children.value),changed=count!==last;if(changed){radios.forEach(function(r){r.checked=false;});guard.checked=false;last=count;}box.hidden=count<=0;var yes=radios.some(function(r){return r.checked&&r.value==='YES';});label.hidden=!yes;label.style.display=yes?'flex':'none';if(!yes)guard.checked=false;}
+ function read(required){sync();var selected=radios.find(function(r){return r.checked;}),answer=Number(children.value)>0?(selected?selected.value:''):'NOT_APPLICABLE',message=answer===''?'未就学児の有無を選択してください。':answer==='YES'&&!guard.checked?'18歳以上の保護者の同伴を確認してください。':'';if(required){err.hidden=!message;err.textContent=message;}if(required&&message){(answer===''?radios[0]:guard).focus();throw Error(message);}return {preschoolAnswer:answer,guardianConfirmed:answer==='YES'&&guard.checked};}
+ function reset(){last=Number(children.value);radios.forEach(function(r){r.checked=false;});guard.checked=false;err.hidden=true;sync();}
+ function fill(value){reset();if(value&&value.valid){radios.forEach(function(r){r.checked=r.value===value.answer;});guard.checked=value.guardianConfirmed===true;}sync();}
+ box.addEventListener('change',function(){err.hidden=true;sync();});children.addEventListener('input',sync);children.addEventListener('change',sync);sync();
+ return {read:read,reset:reset,fill:fill,sync:sync,lock:function(value){box.querySelectorAll('input').forEach(function(el){el.disabled=value;});},element:box};
+}
 
+</script>
+<script>
+
+    var preschoolFields=PreschoolFields_("staff",document.getElementById("children"),document.querySelector(".reception-options").previousElementSibling);
     var fields = ['adults', 'children', 'glovesS', 'glovesL', 'myShoesCount', 'aidCount'];
     var previewTimer = null;
     var mode = null; // 'existing'（受付番号あり） or 'walkin'（新規）
@@ -245,6 +260,7 @@
         customerName: document.getElementById('customerName').value,
         adults: Number(document.getElementById('adults').value) || 0,
         children: Number(document.getElementById('children').value) || 0,
+        preschoolAnswer:preschoolFields.read(false).preschoolAnswer,guardianConfirmed:preschoolFields.read(false).guardianConfirmed,
         aidCount: Number(document.getElementById('aidCount').value) || 0,
         glovesS: Number(document.getElementById('glovesS').value) || 0,
         glovesL: Number(document.getElementById('glovesL').value) || 0,
@@ -423,6 +439,7 @@
       document.getElementById('passSearchResults').innerHTML = '';
       document.getElementById('passSearchInput').value = '';
       fields.forEach(function (id) { document.getElementById(id).value = 0; });
+      preschoolFields.reset();
       document.getElementById('customerName').value = '';
       document.getElementById('receptionConsentSummary').textContent = '';
       document.getElementById('receptionOptionSummary').textContent = '';
@@ -447,6 +464,7 @@
       document.getElementById('customerName').value = q.customerName || '';
       document.getElementById('adults').value = q.adultCount || 0;
       document.getElementById('children').value = q.childCount || 0;
+      preschoolFields.fill(q.preschool);
       document.getElementById('aidCount').value = q.aidCount || 0;
       document.getElementById('glovesS').value = q.confirmedGlovesS || 0;
       document.getElementById('glovesL').value = q.confirmedGlovesL || 0;
@@ -514,6 +532,7 @@
     document.getElementById('submitBtn').addEventListener('click', function () {
       if (receptionSubmitting || !receptionCanEdit) return;
       receptionClearError();
+      try{preschoolFields.read(true);}catch(e){receptionShowError(e.message);return;}
       var input = currentInput();
       if (input.adults + input.children <= 0) {
         receptionShowError('人数を入力してください（大人・子供のいずれか1名以上）');
@@ -888,12 +907,12 @@
     document.getElementById('deskQueueCount').textContent = snapshot.queue.waiting.length + '待機／' + snapshot.queue.called.length + '呼出';
     [['待機中',snapshot.queue.waiting],['呼出中',snapshot.queue.called]].forEach(function (group) {
       group[1].forEach(function (q) {
-        var r = row(q.ticketNo + ' ' + group[0], (q.customerName || '') + ' 大人' + q.adultCount + '・子供' + q.childCount + (q.consentFamilyNames ? '／同意対象のご家族：'+q.consentFamilyNames : ''));
+        var r = row(q.ticketNo + ' ' + group[0], (q.customerName || '') + ' 大人' + q.adultCount + '・子供' + q.childCount + '／'+(q.preschool?q.preschool.label:'未就学児確認：情報未取得') + (q.consentFamilyNames ? '／同意対象のご家族：'+q.consentFamilyNames : ''));
         r.label.replaceChildren(premiumTicketNumber_(q.ticketNo,q.hasPremium),document.createTextNode(' '+group[0]));
         button(r.actions, '内容確認', 'VIEW', [q.ticketNo], 'view:' + q.ticketNo);
         if (group[0] === '待機中') button(r.actions,'呼出','callTicketManually',[q.ticketNo,staffId],'call:' + q.ticketNo);
         if (q.consentStatus === 'NOT_SUBMITTED') button(r.actions,'紙の同意書で受理','markConsentAsPaper',[q.ticketNo,staffId],'paper:' + q.ticketNo);
-        else if (q.receptionComplete) button(r.actions,'入場','admitToIce',[q.ticketNo,staffId],'admit:' + q.ticketNo);
+        else if (q.receptionComplete && (!q.preschool || q.preschool.valid)) button(r.actions,'入場','admitToIce',[q.ticketNo,staffId],'admit:' + q.ticketNo);
         else { var note=document.createElement('span');note.className='loading';note.textContent='受付登録が未完了です。内容確認から再確定してください。';r.actions.appendChild(note); }
         queue.appendChild(r.element);
       });
