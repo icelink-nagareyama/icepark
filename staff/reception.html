@@ -1,15 +1,4 @@
-<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="referrer" content="no-referrer"><meta name="robots" content="noindex,nofollow"><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#102b43"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="アイスパーク管理"><meta name="apple-mobile-web-app-status-bar-style" content="default"><link rel="apple-touch-icon" href="app-icon.jpg"><title>アイスパークin流山 管理画面</title><script>function PreschoolFields_(prefix,children,anchor,adults){
- var box=document.createElement('fieldset');box.className='preschool-check';box.style.cssText='min-width:0;margin:16px 0;padding:16px;border:1px solid #c8dce8;border-radius:12px;text-align:left';
- box.innerHTML='<legend style="font-weight:700">未就学児（3歳〜小学校入学前）はいますか？ <span>必須</span></legend><div style="display:flex;flex-wrap:wrap;gap:12px"><label style="display:flex;align-items:center;gap:8px;min-height:44px"><input type="radio" name="'+prefix+'Preschool" value="NO" style="width:22px;height:22px">いません</label><label style="display:flex;align-items:center;gap:8px;min-height:44px"><input type="radio" name="'+prefix+'Preschool" value="YES" style="width:22px;height:22px">います</label></div><label class="guardian-check" hidden style="align-items:center;gap:8px;min-height:44px"><input type="checkbox" style="width:22px;height:22px;flex-shrink:0">18歳以上の保護者が同伴します</label><p style="font-size:14px;line-height:1.7;margin:8px 0">未就学児がいる場合は、大人を1名以上にしてください。18歳以上の保護者の同伴が必要です。2歳以下は利用できません。未就学児はヘルメット・プロテクターの着用が必須です。</p><p class="preschool-error" role="alert" hidden style="color:#a22232;font-size:14px"></p>';
- anchor.parentNode.insertBefore(box,anchor);var radios=Array.from(box.querySelectorAll('input[type=radio]')),guard=box.querySelector('input[type=checkbox]'),label=box.querySelector('.guardian-check'),err=box.querySelector('.preschool-error'),last=Number(children.value);
- function sync(){var count=Number(children.value),changed=count!==last;if(changed){radios.forEach(function(r){r.checked=false;});guard.checked=false;last=count;}box.hidden=count<=0;var yes=radios.some(function(r){return r.checked&&r.value==='YES';});label.hidden=!yes;label.style.display=yes?'flex':'none';if(!yes)guard.checked=false;}
- function read(required){sync();var selected=radios.find(function(r){return r.checked;}),answer=Number(children.value)>0?(selected?selected.value:''):'NOT_APPLICABLE',message=answer===''?'未就学児の有無を選択してください。':answer==='YES'&&(!Number.isInteger(Number(adults.value))||Number(adults.value)<1)?'未就学児がいる場合は、大人を1名以上にしてください。':answer==='YES'&&!guard.checked?'18歳以上の保護者の同伴を確認してください。':'';if(required){err.hidden=!message;err.textContent=message;}if(required&&message){(answer===''?radios[0]:answer==='YES'&&(!Number.isInteger(Number(adults.value))||Number(adults.value)<1)?adults:guard).focus();throw Error(message);}return {preschoolAnswer:answer,guardianConfirmed:answer==='YES'&&guard.checked};}
- function reset(){last=Number(children.value);radios.forEach(function(r){r.checked=false;});guard.checked=false;err.hidden=true;sync();}
- function fill(value){reset();if(value&&value.valid){radios.forEach(function(r){r.checked=r.value===value.answer;});guard.checked=value.guardianConfirmed===true;}sync();}
- box.addEventListener('change',function(){err.hidden=true;sync();});children.addEventListener('input',sync);children.addEventListener('change',sync);adults.addEventListener('input',function(){err.hidden=true;});adults.addEventListener('change',function(){err.hidden=true;});sync();
- return {read:read,reset:reset,fill:fill,sync:sync,lock:function(value){box.querySelectorAll('input').forEach(function(el){el.disabled=value;});},element:box};
-}
-</script><script src="bridge.js"></script><meta name="referrer" content="no-referrer"><base target="_top"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Noto+Sans+JP:wght@400;500;600;700&display=swap"><link rel="stylesheet" href="theme.css"><script src="common.js"></script></head><body data-layout-page="Reception" class="layout-refresh layout-reception"><section id="operationBar" class="operation-bar" aria-label="本日の運営情報">
+<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="referrer" content="no-referrer"><meta name="robots" content="noindex,nofollow"><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#102b43"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="アイスパーク管理"><meta name="apple-mobile-web-app-status-bar-style" content="default"><link rel="apple-touch-icon" href="app-icon.jpg"><title>アイスパークin流山 管理画面</title><script src="bridge.js"></script><meta name="referrer" content="no-referrer"><base target="_top"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Noto+Sans+JP:wght@400;500;600;700&display=swap"><link rel="stylesheet" href="theme.css"><script src="common.js"></script></head><body data-layout-page="Reception" class="layout-refresh layout-reception"><section id="operationBar" class="operation-bar" aria-label="本日の運営情報">
   <div class="operation-bar-items">
     <div class="operation-bar-item"><span class="operation-bar-label"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="16" rx="3"/><path d="M8 3v4m8-4v4M4 11h16m-12 4h3"/></svg>運営方法</span><span class="operation-bar-value" id="operationBarStatus">読み込み中…</span></div>
     <div class="operation-bar-item"><span class="operation-bar-label"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>運営時間</span><span class="operation-bar-value" id="operationBarHours">読み込み中…</span></div>
@@ -58,6 +47,20 @@
 <style>.test-line-details{margin-top:24px;border-top:1px solid var(--border);padding-top:16px}.test-line-details summary{min-height:48px;padding:10px 0;cursor:pointer;font-weight:700;color:var(--brand-dark)}.test-line-details h3{font-size:16px;margin:24px 0 12px}.test-line-item{margin:12px 0;padding:16px;border:1px solid #c8dce8;border-radius:12px;background:#fff;overflow-wrap:anywhere}.test-line-item pre{font:inherit;line-height:1.8;white-space:pre-wrap;overflow-wrap:anywhere;margin:12px 0}.test-line-item small{display:block;color:#52657a;line-height:1.7}</style>
 
 </section>
+<script>
+function PreschoolFields_(prefix,children,anchor,adults){
+ var box=document.createElement('fieldset');box.className='preschool-check';box.style.cssText='min-width:0;margin:16px 0;padding:16px;border:1px solid #c8dce8;border-radius:12px;text-align:left';
+ box.innerHTML='<legend style="font-weight:700">未就学児（3歳〜小学校入学前）はいますか？ <span>必須</span></legend><div style="display:flex;flex-wrap:wrap;gap:12px"><label style="display:flex;align-items:center;gap:8px;min-height:44px"><input type="radio" name="'+prefix+'Preschool" value="NO" style="width:22px;height:22px">いません</label><label style="display:flex;align-items:center;gap:8px;min-height:44px"><input type="radio" name="'+prefix+'Preschool" value="YES" style="width:22px;height:22px">います</label></div><label class="guardian-check" hidden style="align-items:center;gap:8px;min-height:44px"><input type="checkbox" style="width:22px;height:22px;flex-shrink:0">18歳以上の保護者が同伴します</label><p style="font-size:14px;line-height:1.7;margin:8px 0">未就学児がいる場合は、大人を1名以上にしてください。18歳以上の保護者の同伴が必要です。2歳以下は利用できません。未就学児はヘルメット・プロテクターの着用が必須です。</p><p class="preschool-error" role="alert" hidden style="color:#a22232;font-size:14px"></p>';
+ anchor.parentNode.insertBefore(box,anchor);var radios=Array.from(box.querySelectorAll('input[type=radio]')),guard=box.querySelector('input[type=checkbox]'),label=box.querySelector('.guardian-check'),err=box.querySelector('.preschool-error'),last=Number(children.value);
+ function sync(){var count=Number(children.value),changed=count!==last;if(changed){radios.forEach(function(r){r.checked=false;});guard.checked=false;last=count;}box.hidden=count<=0;var yes=radios.some(function(r){return r.checked&&r.value==='YES';});label.hidden=!yes;label.style.display=yes?'flex':'none';if(!yes)guard.checked=false;}
+ function read(required){sync();var selected=radios.find(function(r){return r.checked;}),answer=Number(children.value)>0?(selected?selected.value:''):'NOT_APPLICABLE',message=answer===''?'未就学児の有無を選択してください。':answer==='YES'&&(!Number.isInteger(Number(adults.value))||Number(adults.value)<1)?'未就学児がいる場合は、大人を1名以上にしてください。':answer==='YES'&&!guard.checked?'18歳以上の保護者の同伴を確認してください。':'';if(required){err.hidden=!message;err.textContent=message;}if(required&&message){(answer===''?radios[0]:answer==='YES'&&(!Number.isInteger(Number(adults.value))||Number(adults.value)<1)?adults:guard).focus();throw Error(message);}return {preschoolAnswer:answer,guardianConfirmed:answer==='YES'&&guard.checked};}
+ function reset(){last=Number(children.value);radios.forEach(function(r){r.checked=false;});guard.checked=false;err.hidden=true;sync();}
+ function fill(value){reset();if(value&&value.valid){radios.forEach(function(r){r.checked=r.value===value.answer;});guard.checked=value.guardianConfirmed===true;}sync();}
+ box.addEventListener('change',function(){err.hidden=true;sync();});children.addEventListener('input',sync);children.addEventListener('change',sync);adults.addEventListener('input',function(){err.hidden=true;});adults.addEventListener('change',function(){err.hidden=true;});sync();
+ return {read:read,reset:reset,fill:fill,sync:sync,lock:function(value){box.querySelectorAll('input').forEach(function(el){el.disabled=value;});},element:box};
+}
+
+</script>
 <script>
 (function(){
  var panel=document.getElementById('testReceptionPanel'),issue=document.getElementById('issueTestTicket'),check=document.getElementById('checkTestTicket'),
@@ -559,10 +562,21 @@ function PreschoolFields_(prefix,children,anchor,adults){
       runSeasonPassCheck();
     }
 
+    function receptionOpenQueueReview_(q){
+      if(window.receptionEmbedded_||!q||['WAITING','CALLED'].indexOf(q.status)===-1)return false;
+      var ticket=String(q.ticketNo||'');if(!/^[0-9]{1,12}$/.test(ticket))return false;
+      var key='icepark-reception-review-ticket',url,now=Date.now(),parts={};new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Tokyo',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date(now)).forEach(function(v){parts[v.type]=v.value;});var handoff=JSON.stringify({ticketNo:ticket,savedAt:now,dayKey:parts.year+'-'+parts.month+'-'+parts.day});
+      try{url=new URL(baseUrl||window.location.href,window.location.href);if(url.protocol!=='https:'&&url.protocol!=='http:')return false;url.search='';url.hash='';url.searchParams.set('page','queuelist');sessionStorage.setItem(key,handoff);if(sessionStorage.getItem(key)!==handoff)throw new Error('storage unavailable');}
+      catch(e){try{sessionStorage.removeItem(key);}catch(ignore){}return false;}
+      if(window.top===window){try{window.location.assign(url.href);return true;}catch(e){try{sessionStorage.removeItem(key);}catch(ignore){}return false;}}
+      var anchor=document.getElementById('receptionQueueReviewLink');if(!anchor){anchor=document.createElement('a');anchor.id='receptionQueueReviewLink';anchor.className='btn btn-outline';anchor.style.minHeight='44px';document.getElementById('formModeLabel').parentNode.appendChild(anchor);}anchor.href=url.href;anchor.target='_top';anchor.textContent='受付内容の確認・入場画面を開く';anchor.onclick=function(){try{sessionStorage.setItem(key,handoff);}catch(e){return false;}};
+      return false;
+    }
     // ---- 1. 受付番号検索 ----
     document.getElementById('searchBtn').addEventListener('click', function () {
       if (receptionSubmitting || (receptionOperation && document.getElementById('receptionRecovery').style.display !== 'none')) { receptionShowError('先に保存状態を確認してください。'); return; }
       receptionClearError();
+      var oldQueueLink=document.getElementById('receptionQueueReviewLink');if(oldQueueLink)oldQueueLink.remove();try{sessionStorage.removeItem('icepark-reception-review-ticket');}catch(ignore){}
       var ticketNo = document.getElementById('searchTicketNo').value.trim();
       if (!ticketNo) {
         receptionShowError('受付番号を入力してください');
@@ -578,6 +592,7 @@ function PreschoolFields_(prefix,children,anchor,adults){
           document.getElementById('formModeLabel').textContent = '受付番号あり（内容を確認・修正してください）';
           fillFormFromTicket(q);
           showCard('formCard');
+          receptionOpenQueueReview_(q);
         })
         .withFailureHandler(function (err) {
           document.getElementById('searchBtn').disabled = false;
