@@ -54,8 +54,8 @@ var logoTemplate=document.createElement("template");logoTemplate.id="appLogoTemp
     (result.bandNumbers||[]).forEach(function(number){
       var assignment=(result.bandAssignments||[]).filter(function(a){return String(a.bandNo)===String(number);})[0],card=document.createElement('div');
       card.innerHTML=bandIdentityHtml_({bandNo:number,exitScheduledAt:result.exitScheduledAt,memberType:assignment&&assignment.memberType});var identity=card.firstElementChild;
-      if(assignment&&Number.isInteger(assignment.childIndex)&&assignment.childIndex>0){var child=document.createElement('span');child.className='admission-child-label';child.textContent='子供'+assignment.childIndex;identity.appendChild(child);}
-      if(assignment&&assignment.preschool===true){var badge=document.createElement('span');badge.className='admission-preschool-badge';badge.textContent='未就学児';identity.appendChild(badge);var note=document.createElement('strong');note.className='admission-preschool-note';note.textContent='未就学児：この番号のバンドに「未」と記入してお渡しください';identity.appendChild(note);}
+      if(assignment&&Number.isInteger(assignment.childIndex)&&assignment.childIndex>0){var child=identity.querySelector('.wristband-member');if(child)child.textContent='子供'+assignment.childIndex;}
+      if(assignment&&assignment.preschool===true){var badge=document.createElement('span');badge.className='admission-preschool-badge';badge.textContent='未就学児';identity.appendChild(badge);var note=document.createElement('strong');note.className='admission-preschool-note';note.textContent='未就学児：バンドに「未」を記入';identity.appendChild(note);}
       if(assignment&&assignment.premium){var label=document.createElement('p');label.style.cssText='font-size:14px;line-height:1.5;margin:8px 0 0;grid-column:1/-1;overflow-wrap:anywhere';label.textContent='プレミアム対象：'+assignment.holderName+'様へ、このバンドをお渡しください';identity.appendChild(label);}
       grid.appendChild(identity);
     });host.appendChild(grid);
