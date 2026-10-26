@@ -39,6 +39,7 @@
       </div>
 
       <div class="card" id="testEnvironmentCard" style="display:none;"><div class="section-title">テストモード</div><p>本番と別のデータで受付・入退場・補助具などを試せます。LINE送信と本番勤怠への書き込みは行いません。</p><button class="btn btn-outline" id="prepareTestBtn">テスト環境を作成・確認</button><p id="testEnvironmentResult"></p></div>
+      <section class="card" id="midnightCloseCard" style="display:none" aria-labelledby="midnightCloseTitle"><div class="section-title" id="midnightCloseTitle">日次締め</div><p>前日分を履歴へ保存し、未退場者は追加料金を作らず一覧を整理します。既存の売上は保持します。本番・テスト共通。貸出中補助具は自動返却しません。</p><p>設定は本番モードの管理者で行ってください。設定すると、0時以降、毎分1回の確認で前日分を整理します。他の定期処理は保持します。</p><p id="midnightCloseStatus" role="status" aria-live="polite">設定状態を確認中…</p><div style="display:flex;flex-wrap:wrap;gap:10px"><button type="button" class="btn btn-outline" id="midnightCloseRefresh" style="min-height:44px">設定状態を確認</button><button type="button" class="btn" id="midnightCloseConfigure" style="min-height:44px" disabled>日次締めを設定する</button></div></section>
       <div id="settingsGroups"></div>
     </div>
   </div>
@@ -177,7 +178,7 @@
           if (staff) {
             document.getElementById('staffLabel').textContent =
               staff.staffName + (staff.role === 'ADMIN' ? '（管理者）' : '');
-            if (staff.role === 'ADMIN') document.getElementById('testEnvironmentCard').style.display = 'block';
+            if (staff.role === 'ADMIN') { document.getElementById('testEnvironmentCard').style.display = 'block';midnightCloseAdmin=true;document.getElementById('midnightCloseCard').style.display='block';loadMidnightCloseStatus_(); }
           }
         })
         .getStaffById(staffId);
@@ -191,6 +192,15 @@
         var link = document.createElement('a'); link.href = v.url; link.textContent = 'テスト用データを開く'; link.target = '_blank'; out.appendChild(link);
       }).withFailureHandler(function (err) { btn.disabled = false; showError(err.message || err); }).prepareTestEnvironment(staffId);
     });
+    var midnightCloseAdmin=false,midnightCloseBusy=false,midnightCloseGeneration=0;
+    function renderMidnightCloseStatus_(v){
+      if(!v||typeof v.installed!=='boolean'||!Number.isSafeInteger(v.triggerCount)||v.triggerCount<0||typeof v.testReady!=='boolean'){document.getElementById('midnightCloseStatus').textContent='設定状態を確認できません。再確認してください。';return;}
+      document.getElementById('midnightCloseStatus').textContent=(v.installed?'設定済み':'未設定')+'／日次締めの定期処理 '+v.triggerCount+'件／テスト環境 '+(v.testReady?'準備済み':'未準備')+(v.triggerCount>1?'。重複があります。設定ボタンで日次締めの登録を整えてください。':'');
+    }
+    function setMidnightCloseBusy_(busy){midnightCloseBusy=busy;document.getElementById('midnightCloseRefresh').disabled=busy;document.getElementById('midnightCloseConfigure').disabled=busy||!midnightCloseAdmin;}
+    function loadMidnightCloseStatus_(){if(!midnightCloseAdmin||midnightCloseBusy)return;var generation=++midnightCloseGeneration;setMidnightCloseBusy_(true);document.getElementById('midnightCloseStatus').textContent='設定状態を確認中…';staffRun().withSuccessHandler(function(v){if(generation!==midnightCloseGeneration)return;setMidnightCloseBusy_(false);renderMidnightCloseStatus_(v);}).withFailureHandler(function(e){if(generation!==midnightCloseGeneration)return;setMidnightCloseBusy_(false);document.getElementById('midnightCloseStatus').textContent='日次締めの設定状態を取得できません。'+(e&&e.message||e);}).getMidnightCloseStatus(staffId);}
+    document.getElementById('midnightCloseRefresh').addEventListener('click',loadMidnightCloseStatus_);
+    document.getElementById('midnightCloseConfigure').addEventListener('click',function(){if(!midnightCloseAdmin||midnightCloseBusy||this.disabled)return;if(!window.confirm('本番・テスト共通の日次締めを設定します。よろしいですか？'))return;var generation=++midnightCloseGeneration;setMidnightCloseBusy_(true);document.getElementById('midnightCloseStatus').textContent='日次締めを設定中…';staffRun().withSuccessHandler(function(v){if(generation!==midnightCloseGeneration)return;setMidnightCloseBusy_(false);renderMidnightCloseStatus_(v);}).withFailureHandler(function(e){if(generation!==midnightCloseGeneration)return;setMidnightCloseBusy_(false);document.getElementById('midnightCloseStatus').textContent='設定結果を確認できません。「設定状態を確認」で確認してください。'+(e&&e.message||e);}).configureMidnightClose(staffId);});
     renderAdminSidebar('main');
     loadStaffLabel();
     loadSettings();
