@@ -899,3 +899,10 @@ input.premium-ticket-number:disabled{-webkit-text-fill-color:#85600c;opacity:1}
 input[type="checkbox"]{width:24px!important;height:24px!important;min-width:24px;min-height:24px;flex:0 0 24px;vertical-align:middle;cursor:pointer}
 label:has(input[type="checkbox"]){display:flex;align-items:center;gap:10px;min-height:44px;box-sizing:border-box;cursor:pointer}
 input[type="checkbox"]:disabled{cursor:default}
+
+/* Admission cards: identical top rows; status and instructions use full-width rows. */
+.admission-band-grid{align-items:stretch}
+.admission-band-grid .wristband-display{grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start;align-content:start;grid-auto-rows:max-content}
+.admission-band-grid .wristband-display>div{align-self:start}
+.admission-band-grid .admission-preschool-badge{grid-column:1/-1;justify-self:start;display:inline-block;font-size:13px;line-height:1.5;font-weight:800;padding:3px 8px;border:1px solid #8ebfd6;border-radius:6px;color:#07577a;background:#e5f5fc}
+.admission-band-grid .admission-preschool-note{display:block;grid-column:1/-1;white-space:nowrap;overflow-wrap:normal;font-size:13px;line-height:1.5;font-weight:800;color:#064b69}
