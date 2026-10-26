@@ -478,10 +478,21 @@ function PreschoolFields_(prefix,children,anchor,adults){
       runSeasonPassCheck();
     }
 
+    function receptionOpenQueueReview_(q){
+      if(window.receptionEmbedded_||!q||['WAITING','CALLED'].indexOf(q.status)===-1)return false;
+      var ticket=String(q.ticketNo||'');if(!/^[0-9]{1,12}$/.test(ticket))return false;
+      var key='icepark-reception-review-ticket',url,now=Date.now(),parts={};new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Tokyo',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date(now)).forEach(function(v){parts[v.type]=v.value;});var handoff=JSON.stringify({ticketNo:ticket,savedAt:now,dayKey:parts.year+'-'+parts.month+'-'+parts.day});
+      try{url=new URL(baseUrl||window.location.href,window.location.href);if(url.protocol!=='https:'&&url.protocol!=='http:')return false;url.search='';url.hash='';url.searchParams.set('page','queuelist');sessionStorage.setItem(key,handoff);if(sessionStorage.getItem(key)!==handoff)throw new Error('storage unavailable');}
+      catch(e){try{sessionStorage.removeItem(key);}catch(ignore){}return false;}
+      if(window.top===window){try{window.location.assign(url.href);return true;}catch(e){try{sessionStorage.removeItem(key);}catch(ignore){}return false;}}
+      var anchor=document.getElementById('receptionQueueReviewLink');if(!anchor){anchor=document.createElement('a');anchor.id='receptionQueueReviewLink';anchor.className='btn btn-outline';anchor.style.minHeight='44px';document.getElementById('formModeLabel').parentNode.appendChild(anchor);}anchor.href=url.href;anchor.target='_top';anchor.textContent='受付内容の確認・入場画面を開く';anchor.onclick=function(){try{sessionStorage.setItem(key,handoff);}catch(e){return false;}};
+      return false;
+    }
     // ---- 1. 受付番号検索 ----
     document.getElementById('searchBtn').addEventListener('click', function () {
       if (receptionSubmitting || (receptionOperation && document.getElementById('receptionRecovery').style.display !== 'none')) { receptionShowError('先に保存状態を確認してください。'); return; }
       receptionClearError();
+      var oldQueueLink=document.getElementById('receptionQueueReviewLink');if(oldQueueLink)oldQueueLink.remove();try{sessionStorage.removeItem('icepark-reception-review-ticket');}catch(ignore){}
       var ticketNo = document.getElementById('searchTicketNo').value.trim();
       if (!ticketNo) {
         receptionShowError('受付番号を入力してください');
@@ -497,6 +508,7 @@ function PreschoolFields_(prefix,children,anchor,adults){
           document.getElementById('formModeLabel').textContent = '受付番号あり（内容を確認・修正してください）';
           fillFormFromTicket(q);
           showCard('formCard');
+          receptionOpenQueueReview_(q);
         })
         .withFailureHandler(function (err) {
           document.getElementById('searchBtn').disabled = false;
