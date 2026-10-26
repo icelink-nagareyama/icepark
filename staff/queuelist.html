@@ -633,6 +633,9 @@ function renderQueueReview(){
  '\nパス '+(q.seasonPassHolders.length?q.seasonPassHolders.map(function(p){return p.holderName+'（'+p.passNo+'）';}).join('、'):'なし')+
  '\n支払方法 '+({CASH:'現金',CARD:'カード',PAYPAY:'PayPay',SEASON_PASS:'パス'}[q.paymentMethod]||q.paymentMethod||'未確定')+
  '\n'+(q.receptionComplete?'確定済み受付金額 ¥'+q.savedReceptionTotal.toLocaleString():'受付・料金は未確定（フォームで確認・確定してください）')+'\n同意書 '+(QUEUE_CONSENT_LABEL[q.consentStatus]||'未確認')+(q.consentFamilyNames?'\n対象のご家族：'+q.consentFamilyNames+'\n今回の利用者が対象のご家族に含まれることを確認してください。':'');
+
+ var preschoolReview=document.getElementById('queueReviewContent'),preschoolLabel=q.preschool?q.preschool.label:'未就学児確認：情報未取得',reviewText=preschoolReview.textContent,preschoolIndex=reviewText.indexOf('\n'+preschoolLabel+'\n');
+ if(preschoolIndex>=0){var preschoolStrong=document.createElement('strong');preschoolStrong.className='preschool-review-emphasis';preschoolStrong.style.fontWeight='700';preschoolStrong.textContent=preschoolLabel;preschoolReview.replaceChildren(document.createTextNode(reviewText.slice(0,preschoolIndex+1)),preschoolStrong,document.createTextNode(reviewText.slice(preschoolIndex+1+preschoolLabel.length)));}
  document.getElementById('queueReadiness').textContent=q.preschool&&!q.preschool.valid?'未就学児・保護者同伴が未確認です。「内容を修正」から確認してください。':!valid?'現在の状態では入場できません（'+q.status+'）。':queueEditing?'変更中です。内容を保存してから入場してください。':!q.receptionComplete?'先に受付内容と料金を確定してください。紙の同意書の受理だけでは受付確定になりません。':!consentOK?'同意書を確認してください。紙で提出済みなら「紙の同意書で受理」を押してください。':'内容・支払額・同意書を確認したら入場できます。';
  document.getElementById('queueAdmit').disabled=!valid||!q.receptionComplete||!consentOK||(q.preschool&&!q.preschool.valid)||queueEditing||queueDetailLoading||queueBlocked()||!!queuePending['admit:'+q.ticketNo];
  document.getElementById('queuePaper').style.display=consentOK?'none':'inline-block';document.getElementById('queuePaper').disabled=!valid||queueEditing||queueDetailLoading||queueBlocked()||!!queuePending['paper:'+q.ticketNo];
