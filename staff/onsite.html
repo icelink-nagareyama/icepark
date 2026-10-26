@@ -20,7 +20,7 @@
   .onsite-aid-return{min-height:44px;min-width:88px;white-space:nowrap}.onsite-aid-loan-info{flex:1;justify-content:flex-end}
   .onsite-aid-deadline{color:#126e95;font-size:16px;font-weight:700;font-variant-numeric:tabular-nums}.onsite-aid-remaining{color:#126e95;font-weight:700}.onsite-aid-deadline,.onsite-aid-remaining,.onsite-aid-warning{white-space:nowrap}
   @media(max-width:600px){.onsite-aid-summary{padding:12px}.onsite-aid-summary-row{gap:10px 16px}.onsite-aid-summary .btn{margin-left:0}.onsite-aid-tag{margin:6px 0 0;display:table}.onsite-aid-loans{padding:0 12px}}
-  .premium-session-badge{display:inline-flex;align-items:center;margin-left:8px;padding:3px 9px;border-radius:999px;border:1px solid #d8b260;background:#fff6df;color:#775209;font-size:14px;font-weight:700;white-space:nowrap}.band-actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}.second-session-btn{border-color:#bc9143;color:#775209;background:#fff9ed;min-height:44px}.second-session-btn:disabled{opacity:.6}
+  .preschool-band-badge{display:inline-flex;align-items:center;margin-left:8px;padding:3px 9px;border-radius:999px;border:1px solid #7aa69b;background:#e6f4ef;color:#20564a;font-size:14px;font-weight:700;white-space:nowrap}.preschool-exit-note{display:block;max-width:290px;font-size:13px;line-height:1.7;color:#9a2430}.band-row>.preschool-exit-note{grid-column:1/-1;max-width:none;margin:0}.premium-session-badge{display:inline-flex;align-items:center;margin-left:8px;padding:3px 9px;border-radius:999px;border:1px solid #d8b260;background:#fff6df;color:#775209;font-size:14px;font-weight:700;white-space:nowrap}.band-actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}.second-session-btn{border-color:#bc9143;color:#775209;background:#fff9ed;min-height:44px}.second-session-btn:disabled{opacity:.6}
 @media(max-width:1100px){.band-row .band-actions{grid-column:2;grid-row:1}}@media(max-width:600px){.band-actions{max-width:130px;flex-direction:column;align-items:stretch}.band-actions .btn{white-space:normal}}.second-session-control{display:flex;flex-direction:column;align-items:flex-start;gap:7px;margin-top:10px;max-width:100%;font-weight:500}.second-session-control .second-session-btn{font-size:14px;padding:8px 12px;min-height:44px;max-width:100%;white-space:normal;text-align:center}.second-session-feedback{margin:0;font-size:13px;line-height:1.5;overflow-wrap:anywhere;color:#526c83}.second-session-feedback[data-kind=error]{color:#a22232}.second-session-confirm{width:100%;padding:10px;border:1px solid #dfc68b;border-radius:8px;background:#fff9ed;box-sizing:border-box}.second-session-confirm p{font-size:13px;line-height:1.5;margin:0 0 8px}.second-session-confirm-actions{display:flex;flex-wrap:wrap;gap:6px}.second-session-confirm .btn{min-height:44px;white-space:normal}.second-session-control [hidden]{display:none!important}</style>
 </head>
 <body data-layout-page="OnSite" class="layout-refresh">
@@ -145,6 +145,8 @@
       return label+' ／ 超過料金（見込み）¥'+w.overtimeCharge.toLocaleString()+(w.overMinutes>0&&w.overtimeCharge===0&&w.overtimeReason?'（'+w.overtimeReason+'）':'');
     }
 
+    function preschoolMemberHtml_(w){if(w.preschool===true)return '<span class="preschool-band-badge">未就学児</span>';return '（'+memberLabel(w.memberType)+'）'+(w.preschoolUnconfirmed?'<span class="preschool-band-badge">未就学児区分未確認</span>':'');}
+    function preschoolExitNoteHtml_(w){if(!w.exitBlockedReason)return '';var note=document.createElement('span');note.className='preschool-exit-note';note.textContent=w.exitBlockedReason;return note.outerHTML;}
     function memberLabel(type) {
       return type === 'ADULT' ? '大人' : type === 'CHILD' ? '子供' : (type || '');
     }
@@ -156,7 +158,7 @@
       var savedInputs={};document.querySelectorAll('.extend-min').forEach(function(e){savedInputs[e.dataset.ticket]=e.value;});
       var upcoming=[];list.forEach(function(q){q.bands.forEach(function(w){if(w.exitScheduledAt)upcoming.push({ticket:q.ticketNo,band:w});});});
       upcoming.sort(function(a,b){return new Date(a.band.exitScheduledAt)-new Date(b.band.exitScheduledAt);});
-      var nearBox=document.getElementById('nearExitList');nearBox.replaceChildren();upcoming.slice(0,10).forEach(function(p,i){if(i)nearBox.appendChild(document.createTextNode('\n'));nearBox.appendChild(document.createTextNode('受付 '));nearBox.appendChild(premiumTicketNumber_(p.ticket,p.band.premium===true));nearBox.appendChild(document.createTextNode('／バンド '+bandDisplayNo_(p.band.bandNo)+'（'+bandPassLabel_(p.band)+(p.band.sessionNumber===2?'・2回目':'')+'）　'+p.band.exitScheduledLabel+'　'+bandTimeLabel(p.band)));});if(!upcoming.length)nearBox.textContent='退場予定のある在場者はいません。';
+      var nearBox=document.getElementById('nearExitList');nearBox.replaceChildren();upcoming.slice(0,10).forEach(function(p,i){if(i)nearBox.appendChild(document.createTextNode('\n'));nearBox.appendChild(document.createTextNode('受付 '));nearBox.appendChild(premiumTicketNumber_(p.ticket,p.band.premium===true));nearBox.appendChild(document.createTextNode('／バンド '+bandDisplayNo_(p.band.bandNo)+(p.band.preschool?'［未就学児］':p.band.preschoolUnconfirmed?'［未就学児区分未確認］':'')+'（'+bandPassLabel_(p.band)+(p.band.sessionNumber===2?'・2回目':'')+'）　'+p.band.exitScheduledLabel+'　'+bandTimeLabel(p.band)));});if(!upcoming.length)nearBox.textContent='退場予定のある在場者はいません。';
       renderOnSiteKpi_('totalTag',list.length,'組');
       renderOnSiteKpi_('layoutOnSitePeople',list.reduce(function(n,q){return n+q.bands.length;},0),'名');
       renderOnSiteKpi_('layoutNearExitPeople',Math.min(10,upcoming.length),'名');
@@ -171,9 +173,9 @@
         card.className = 'card';
         var bandsHtml = q.bands.map(function (w) {
           return '<div class="list-row band-row">' +
-              '<div class="band-id">' + bandDisplayNo_(w.bandNo) + '（' + memberLabel(w.memberType) + '）' + bandPassLabelHtml_(w) + (w.sessionNumber===2?'<span class="premium-session-badge">2回目</span>':'') + secondSessionControlHtml_(w) + '</div>' +
+              '<div class="band-id">' + bandDisplayNo_(w.bandNo) + preschoolMemberHtml_(w) + bandPassLabelHtml_(w) + (w.sessionNumber===2?'<span class="premium-session-badge">2回目</span>':'') + secondSessionControlHtml_(w) + '</div>' +
               '<div class="band-timing">'+timeMeterHtml(w)+'</div>'+
-              '<div class="band-actions">'+'<button class="btn '+(w.overtimeCharge>0?'btn-danger':'btn-outline')+' btn-sm exit-btn" data-band="' + w.bandNo + '">'+(w.overtimeCharge>0?'¥'+w.overtimeCharge.toLocaleString()+' 徴収・退場':'退場')+'</button></div>' +
+              '<div class="band-actions">'+'<button class="btn '+(w.overtimeCharge>0?'btn-danger':'btn-outline')+' btn-sm exit-btn" data-band="' + w.bandNo + '"'+(w.exitBlockedReason?' disabled':'')+'>'+(w.overtimeCharge>0?'¥'+w.overtimeCharge.toLocaleString()+' 徴収・退場':'退場')+'</button></div>'+preschoolExitNoteHtml_(w) +
           '</div>';
         }).join('');
 
