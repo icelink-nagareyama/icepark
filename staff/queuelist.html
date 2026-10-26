@@ -1,6 +1,8 @@
 <!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="referrer" content="no-referrer"><meta name="robots" content="noindex,nofollow"><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#102b43"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="アイスパーク管理"><meta name="apple-mobile-web-app-status-bar-style" content="default"><link rel="apple-touch-icon" href="app-icon.jpg"><title>アイスパークin流山 管理画面</title><script src="bridge.js"></script><meta name="referrer" content="no-referrer"><base target="_top"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Noto+Sans+JP:wght@400;500;600;700&display=swap"><link rel="stylesheet" href="theme.css"><script src="common.js"></script>
 <style>.queue-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.queue-summary{white-space:pre-line;line-height:1.9;overflow-wrap:anywhere}.queue-state{margin:12px 0;font-weight:700;color:var(--brand-dark)}#queueEditor #searchCard,#queueEditor #nextBtn{display:none!important}#queueEditor .two-col-side{position:static}#queueReview,#queueEditor{scroll-margin-top:calc(var(--operation-bar-height,120px) + 12px)}
 .queue-preschool-bands{margin:16px 0;padding:16px;border:1px solid #b9d8e9;border-radius:10px;background:#f2f9fd;overflow-wrap:anywhere}.queue-preschool-bands h3{font-size:18px;margin:0 0 10px}.queue-preschool-bands p{font-size:14px;line-height:1.8;margin:8px 0}.queue-preschool-band-choices{display:flex;flex-wrap:wrap;gap:10px}.queue-preschool-band-option{display:flex;align-items:center;gap:10px;min-height:48px;padding:10px 14px;border:1px solid #a9cddd;border-radius:8px;background:#fff;font-size:16px;cursor:pointer;box-sizing:border-box}.queue-preschool-band-option input{width:22px;height:22px;min-width:22px;accent-color:#087eab}.queue-preschool-band-option:focus-within{outline:2px solid #087eab;outline-offset:2px}.queue-preschool-band-option.is-locked{opacity:.65;cursor:default}
+
+.queue-quick-admission{margin:16px 0;padding:16px;border:1px solid #b9d8e9;border-radius:10px;background:#f2f9fd;overflow-wrap:anywhere}.queue-quick-admission h3{font-size:18px;margin:0 0 8px}.queue-quick-payment{display:flex;align-items:center;gap:12px;min-height:48px;cursor:pointer}.queue-quick-payment input{width:22px;height:22px;min-width:22px}.queue-quick-admission .btn{margin-top:12px;min-height:48px;white-space:normal;max-width:100%}
 </style>
 <style>@media(min-width:1101px){#calledList .list-row,#waitingList .list-row{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:16px;row-gap:3px;align-items:center;padding:12px 16px;margin-bottom:8px}#calledList .list-row>div:not(.queue-actions),#waitingList .list-row>div:not(.queue-actions){grid-column:1;min-width:0}#calledList .queue-actions,#waitingList .queue-actions{grid-column:2;grid-row:1 / span 2;margin-top:0;justify-content:flex-end;gap:6px}.queue-actions .btn-sm{min-height:36px;padding:7px 12px}}</style>
 <style>.queue-batch-toolbar{flex-wrap:wrap;gap:12px}.queue-batch-toolbar #callWaitingBatch{min-height:44px;max-width:100%;white-space:normal}@media(max-width:700px){.queue-batch-toolbar #callWaitingBatch{flex-basis:100%;width:100%}}</style></head><body data-layout-page="QueueList" class="layout-refresh"><section id="operationBar" class="operation-bar" aria-label="本日の運営情報">
@@ -21,6 +23,7 @@
 <section id="queueReview" class="card" style="display:none;">
  <div class="section-title" id="queueReviewTitle"></div><div id="queueReviewContent" class="queue-summary"></div><div id="queueReadiness" class="queue-state"></div>
  <section id="queuePreschoolBands" class="queue-preschool-bands" style="display:none" aria-labelledby="queuePreschoolBandTitle"><h3 id="queuePreschoolBandTitle">未就学児のバンドを指定</h3><p id="queuePreschoolBandHelp"></p><div id="queuePreschoolBandChoices" class="queue-preschool-band-choices"></div><p id="queuePreschoolBandError" class="msg-error" style="display:none" role="alert"></p></section>
+ <section id="queueQuickAdmission" class="queue-quick-admission" style="display:none" aria-labelledby="queueQuickTitle"><h3 id="queueQuickTitle">受付内容を確認して、そのまま入場</h3><p id="queueQuickQuote"></p><label class="queue-quick-payment"><input id="queueQuickPayment" type="checkbox"><span id="queueQuickPaymentLabel"></span></label><button id="queueQuickAdmit" class="btn" disabled>内容・支払・同意を確認して入場</button></section>
  <div class="queue-actions"><button class="btn btn-outline" id="queueEdit">内容を修正</button><button class="btn btn-outline" id="queuePaper">紙の同意書で受理</button><button class="btn" id="queueAdmit" disabled>内容を確認して入場確定</button><button class="btn btn-outline" id="queueReload">最新内容を読み直す</button></div>
 </section>
 <div id="queueEditor" style="display:none;">
@@ -450,10 +453,21 @@ function PreschoolFields_(prefix,children,anchor,adults){
       runSeasonPassCheck();
     }
 
+    function receptionOpenQueueReview_(q){
+      if(window.receptionEmbedded_||!q||['WAITING','CALLED'].indexOf(q.status)===-1)return false;
+      var ticket=String(q.ticketNo||'');if(!/^[0-9]{1,12}$/.test(ticket))return false;
+      var key='icepark-reception-review-ticket',url,now=Date.now(),parts={};new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Tokyo',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date(now)).forEach(function(v){parts[v.type]=v.value;});var handoff=JSON.stringify({ticketNo:ticket,savedAt:now,dayKey:parts.year+'-'+parts.month+'-'+parts.day});
+      try{url=new URL(baseUrl||window.location.href,window.location.href);if(url.protocol!=='https:'&&url.protocol!=='http:')return false;url.search='';url.hash='';url.searchParams.set('page','queuelist');sessionStorage.setItem(key,handoff);if(sessionStorage.getItem(key)!==handoff)throw new Error('storage unavailable');}
+      catch(e){try{sessionStorage.removeItem(key);}catch(ignore){}return false;}
+      if(window.top===window){try{window.location.assign(url.href);return true;}catch(e){try{sessionStorage.removeItem(key);}catch(ignore){}return false;}}
+      var anchor=document.getElementById('receptionQueueReviewLink');if(!anchor){anchor=document.createElement('a');anchor.id='receptionQueueReviewLink';anchor.className='btn btn-outline';anchor.style.minHeight='44px';document.getElementById('formModeLabel').parentNode.appendChild(anchor);}anchor.href=url.href;anchor.target='_top';anchor.textContent='受付内容の確認・入場画面を開く';anchor.onclick=function(){try{sessionStorage.setItem(key,handoff);}catch(e){return false;}};
+      return false;
+    }
     // ---- 1. 受付番号検索 ----
     document.getElementById('searchBtn').addEventListener('click', function () {
       if (receptionSubmitting || (receptionOperation && document.getElementById('receptionRecovery').style.display !== 'none')) { receptionShowError('先に保存状態を確認してください。'); return; }
       receptionClearError();
+      var oldQueueLink=document.getElementById('receptionQueueReviewLink');if(oldQueueLink)oldQueueLink.remove();try{sessionStorage.removeItem('icepark-reception-review-ticket');}catch(ignore){}
       var ticketNo = document.getElementById('searchTicketNo').value.trim();
       if (!ticketNo) {
         receptionShowError('受付番号を入力してください');
@@ -469,6 +483,7 @@ function PreschoolFields_(prefix,children,anchor,adults){
           document.getElementById('formModeLabel').textContent = '受付番号あり（内容を確認・修正してください）';
           fillFormFromTicket(q);
           showCard('formCard');
+          receptionOpenQueueReview_(q);
         })
         .withFailureHandler(function (err) {
           document.getElementById('searchBtn').disabled = false;
@@ -621,11 +636,26 @@ var queueBatchWaitingCount=0;
 var queueSelected=null,queueEditing=false,queueGeneration=0,queueDetailGeneration=0,queueDetailLoading=false;
 var queuePending=Object.create(null),queueFailed=Object.create(null);
 var queuePreschoolBands={key:'',indices:[]},queueAdmissionArgs=Object.create(null);
+var queueQuickPayment={key:'',checked:false};
 var MODE_LABEL={SELF_ENTRY:'セルフ入場',AUTO_CALL:'自動呼出',MANUAL_CALL:'手動呼出'};
 var QUEUE_CONSENT_LABEL={PAPER:'確認済み（紙）',SUBMITTED:'確認済み（電子）',NOT_SUBMITTED:'未確認'};
 function showError(message){var b=document.getElementById('errorBox');b.textContent=message;b.style.display='block';}
 function clearError(){document.getElementById('errorBox').style.display='none';}
 function queueBlocked(){return receptionSubmitting||(receptionOperation&&document.getElementById('receptionRecovery').style.display!=='none');}
+function queueAdmissionUnresolved_(ticket){return !!(queuePending['admit:'+ticket]||queueFailed['admit:'+ticket]||queuePending['quick-admit:'+ticket]||queueFailed['quick-admit:'+ticket]);}
+function queueQuickQuoteValid_(q){var v=q.quickAdmissionQuote;return !!(v&&v.available===true&&typeof v.total==='number'&&Number.isSafeInteger(v.total)&&v.total>=0&&q.version);}
+function queueQuickEligible_(q){return !q.receptionComplete&&['WAITING','CALLED'].indexOf(q.status)!==-1&&['PAPER','SUBMITTED'].indexOf(q.consentStatus)!==-1&&!!q.preschool&&q.preschool.valid===true&&queuePreschoolBandIndices_(q)!==null&&queueQuickQuoteValid_(q);}
+function renderQueueQuickAdmission_(q){
+ var quote=q.quickAdmissionQuote,valid=queueQuickQuoteValid_(q),key='quick-admit:'+q.ticketNo,recover=!!queueFailed[key],pending=!!queuePending[key];
+ var fingerprint=JSON.stringify([q,queuePreschoolBandIndices_(q)]);if(queueQuickPayment.key!==fingerprint)queueQuickPayment={key:fingerprint,checked:false};
+ document.getElementById('queueQuickAdmission').style.display=(!q.receptionComplete||recover||pending)?'block':'none';
+ document.getElementById('queueQuickQuote').textContent=valid?'保存済みの受付内容・LINEでの希望数による今回の予定額：¥'+quote.total.toLocaleString()+'。数量や内容に変更がある場合は「内容・料金を確認して受付を確定」から修正してください。':'予定額を確認できません。'+(quote&&quote.reason?String(quote.reason):'最新内容を読み直すか、受付内容・料金を確認してください。');
+ var input=document.getElementById('queueQuickPayment'),locked=queueEditing||queueDetailLoading||queueBlocked()||queueAdmissionUnresolved_(q.ticketNo);
+ input.checked=queueQuickPayment.checked;input.disabled=locked||!queueQuickEligible_(q);
+ document.getElementById('queueQuickPaymentLabel').textContent=valid&&quote.total===0?'受付内容・0円の支払額・同意書を確認しました':'受付内容・支払額と支払い・同意書を確認しました';
+ var button=document.getElementById('queueQuickAdmit');button.textContent=pending?'入場を保存中…':recover?'受付・入場の保存状態を確認':'内容・支払・同意を確認して入場';
+ button.disabled=queueEditing||queueDetailLoading||queueBlocked()||pending||!!queuePending['admit:'+q.ticketNo]||!!queueFailed['admit:'+q.ticketNo]||(!recover&&(!queueQuickEligible_(q)||!queueQuickPayment.checked));
+}
 function queuePreschoolBandKey_(q){return JSON.stringify([String(q.ticketNo),String(q.version||''),Number(q.childCount),q.preschool&&q.preschool.answer||'']);}
 function queuePreschoolBandIndices_(q){
  if(!q.preschool||q.preschool.answer!=='YES')return [];
@@ -641,7 +671,7 @@ function renderQueuePreschoolBands_(q){
  choices.replaceChildren();error.style.display='none';
  if(!q.preschool||q.preschool.answer!=='YES'||Number(q.childCount)<1){box.style.display='none';return;}
  box.style.display='block';
- var multiple=Number(q.childCount)>1,locked=queueEditing||queueDetailLoading||queueBlocked()||!!queuePending['admit:'+q.ticketNo]||!!queueFailed['admit:'+q.ticketNo];
+ var multiple=Number(q.childCount)>1,locked=queueEditing||queueDetailLoading||queueBlocked()||queueAdmissionUnresolved_(q.ticketNo);
  document.getElementById('queuePreschoolBandHelp').textContent=multiple?'未就学児に該当する子供を1名以上選択してください。「子供1、子供2…」は受付時に保存した子供の登録順です。大人の後にこの順でバンドを発行します。入場完了画面の実際の番号を確認して、対象のバンドをお渡しください。':'子供1を自動的に未就学児の対象にします。入場完了画面の実際の番号を確認して、バンドに「未」と記入してお渡しください。';
  if(!multiple)return;
  for(var n=1;n<=Number(q.childCount);n++){
@@ -656,21 +686,22 @@ function renderQueueReview(){
  updateQueueBatchControls_();
  if(!queueSelected)return;
  var q=queueSelected,valid=['WAITING','CALLED'].indexOf(q.status)!==-1,consentOK=['PAPER','SUBMITTED'].indexOf(q.consentStatus)!==-1;
- renderQueuePreschoolBands_(q);var preschoolMissing=queuePreschoolBandIndices_(q)===null&&!queueFailed['admit:'+q.ticketNo];
+ renderQueuePreschoolBands_(q);renderQueueQuickAdmission_(q);var preschoolMissing=queuePreschoolBandIndices_(q)===null&&!queueFailed['admit:'+q.ticketNo];
  document.getElementById('queueReview').style.display='block';var heading=document.getElementById('queueReviewTitle');heading.replaceChildren(document.createTextNode('受付 '),premiumTicketNumber_(q.ticketNo,q.hasPremium),document.createTextNode(' の内容確認'));
  document.getElementById('queueReviewContent').textContent=(q.customerName||'お名前未入力')+'\n大人 '+q.adultCount+'名／子供 '+q.childCount+'名（計'+q.partySize+'名）'+(q.isNighter?'・ナイター':'・通常料金')+
  '\n'+(q.preschool?q.preschool.label:'未就学児確認：情報未取得')+'\n手袋 S '+(q.confirmedGlovesS||0)+'／L '+(q.confirmedGlovesL||0)+'・マイシューズ '+(q.confirmedMyShoesCount||0)+
  '\n補助具 '+q.aidCount+'台／貸出番号 '+(q.aidNumbers.length?q.aidNumbers.join('、'):'なし')+
  '\nパス '+(q.seasonPassHolders.length?q.seasonPassHolders.map(function(p){return p.holderName+'（'+p.passNo+'）';}).join('、'):'なし')+
  '\n支払方法 '+({CASH:'現金',CARD:'カード',PAYPAY:'PayPay',SEASON_PASS:'パス'}[q.paymentMethod]||q.paymentMethod||'未確定')+
- '\n'+(q.receptionComplete?'確定済み受付金額 ¥'+q.savedReceptionTotal.toLocaleString():'受付・料金は未確定（フォームで確認・確定してください）')+'\n同意書 '+(QUEUE_CONSENT_LABEL[q.consentStatus]||'未確認')+(q.consentFamilyNames?'\n対象のご家族：'+q.consentFamilyNames+'\n今回の利用者が対象のご家族に含まれることを確認してください。':'');
+ '\n'+(q.receptionComplete?'確定済み受付金額 ¥'+q.savedReceptionTotal.toLocaleString():'受付・料金は未確定（下の予定額と内容を確認するか、フォームで修正してください）')+'\n同意書 '+(QUEUE_CONSENT_LABEL[q.consentStatus]||'未確認')+(q.consentFamilyNames?'\n対象のご家族：'+q.consentFamilyNames+'\n今回の利用者が対象のご家族に含まれることを確認してください。':'');
 
  var preschoolReview=document.getElementById('queueReviewContent'),preschoolLabel=q.preschool?q.preschool.label:'未就学児確認：情報未取得',reviewText=preschoolReview.textContent,preschoolIndex=reviewText.indexOf('\n'+preschoolLabel+'\n');
  if(preschoolIndex>=0){var preschoolStrong=document.createElement('strong');preschoolStrong.className='preschool-review-emphasis';preschoolStrong.style.fontWeight='700';preschoolStrong.textContent=preschoolLabel;preschoolReview.replaceChildren(document.createTextNode(reviewText.slice(0,preschoolIndex+1)),preschoolStrong,document.createTextNode(reviewText.slice(preschoolIndex+1+preschoolLabel.length)));}
- document.getElementById('queueReadiness').textContent=q.preschool&&!q.preschool.valid?'未就学児・保護者同伴が未確認です。「内容を修正」から確認してください。':!valid?'現在の状態では入場できません（'+q.status+'）。':queueEditing?'変更中です。内容を保存してから入場してください。':!q.receptionComplete?'先に受付内容と料金を確定してください。紙の同意書の受理だけでは受付確定になりません。':!consentOK?'同意書を確認してください。紙で提出済みなら「紙の同意書で受理」を押してください。':preschoolMissing?'未就学児に該当する子供を選択してください。':'内容・支払額・同意書を確認したら入場できます。';
- document.getElementById('queueAdmit').disabled=!valid||!q.receptionComplete||!consentOK||(q.preschool&&!q.preschool.valid)||preschoolMissing||queueEditing||queueDetailLoading||queueBlocked()||!!queuePending['admit:'+q.ticketNo];
- document.getElementById('queuePaper').style.display=consentOK?'none':'inline-block';document.getElementById('queuePaper').disabled=!valid||queueEditing||queueDetailLoading||queueBlocked()||!!queuePending['paper:'+q.ticketNo];
- document.getElementById('queueEdit').textContent=q.receptionComplete?'内容を修正':'内容・料金を確認して受付を確定';document.getElementById('queueEdit').disabled=!q.editAllowed||queueEditing||queueDetailLoading||queueBlocked();document.getElementById('queueReload').disabled=queueBlocked();
+ document.getElementById('queueReadiness').textContent=q.preschool&&!q.preschool.valid?'未就学児・保護者同伴が未確認です。「内容を修正」から確認してください。':!valid?'現在の状態では入場できません（'+q.status+'）。':queueEditing?'変更中です。内容を保存してから入場してください。':!q.receptionComplete?'下の予定額・受付内容・支払い・同意書を確認すると、受付確定と入場をまとめて保存できます。内容を変更する場合はフォームで修正してください。':!consentOK?'同意書を確認してください。紙で提出済みなら「紙の同意書で受理」を押してください。':preschoolMissing?'未就学児に該当する子供を選択してください。':'内容・支払額・同意書を確認したら入場できます。';
+ document.getElementById('queueAdmit').style.display=q.receptionComplete&&!queuePending['quick-admit:'+q.ticketNo]&&!queueFailed['quick-admit:'+q.ticketNo]?'inline-block':'none';
+ document.getElementById('queueAdmit').disabled=!valid||!q.receptionComplete||!consentOK||(q.preschool&&!q.preschool.valid)||preschoolMissing||queueEditing||queueDetailLoading||queueBlocked()||!!queuePending['admit:'+q.ticketNo]||!!queuePending['quick-admit:'+q.ticketNo]||!!queueFailed['quick-admit:'+q.ticketNo];
+ document.getElementById('queuePaper').style.display=consentOK?'none':'inline-block';document.getElementById('queuePaper').disabled=!valid||queueEditing||queueDetailLoading||queueBlocked()||!!queuePending['paper:'+q.ticketNo]||queueAdmissionUnresolved_(q.ticketNo);
+ document.getElementById('queueEdit').textContent=q.receptionComplete?'内容を修正':'内容・料金を確認して受付を確定';document.getElementById('queueEdit').disabled=!q.editAllowed||queueEditing||queueDetailLoading||queueBlocked()||queueAdmissionUnresolved_(q.ticketNo);document.getElementById('queueReload').disabled=queueBlocked()||queueAdmissionUnresolved_(q.ticketNo);
  if(!q.editAllowed)document.getElementById('queueReadiness').textContent+=' '+q.editBlockedReason;
 }
 function loadQueueSelected(ticket,fill,scroll){
@@ -694,7 +725,7 @@ function renderQueueRows(list,id){
 function finishQueueAction(action,result,key){
  delete queuePending[key];delete queueFailed[key];clearError();
  updateQueueBatchControls_();
- if(action==='admitToIce'){delete queueAdmissionArgs[key];queuePreschoolBands={key:'',indices:[]};renderAdmissionBands_(document.getElementById('queueNotice'),result);queueSelected=null;queueDetailGeneration++;document.getElementById('queueReview').style.display='none';document.getElementById('queueEditor').style.display='none';}
+ if(action==='admitToIce'||action==='confirmReceptionAndAdmit'){queueQuickPayment={key:'',checked:false};delete queueAdmissionArgs[key];queuePreschoolBands={key:'',indices:[]};renderAdmissionBands_(document.getElementById('queueNotice'),action==='confirmReceptionAndAdmit'?result.admission:result);queueSelected=null;queueDetailGeneration++;document.getElementById('queueReview').style.display='none';document.getElementById('queueEditor').style.display='none';}
  else if(action==='callWaitingBatch'){document.getElementById('queueNotice').textContent=result.count+'組・'+result.partySize+'名を呼び出しました。'+(result.notificationFailedTicketNos.length?' LINE通知の送信結果を確認してください。':'')+(result.failedTicketNos.length?' 一部の受付を保存できませんでした。一覧と保存状態を確認してください。':'');}
  else{document.getElementById('queueNotice').textContent=action==='markConsentAsPaper'?'紙の同意書の受理を保存しました。受付・料金の確定状態を確認してください。':'操作を保存しました。';if(queueSelected)loadQueueSelected(queueSelected.ticketNo,false);}
  loadQueueList();refreshOperationBar();
@@ -707,13 +738,22 @@ function runQueueAction(action,args,key){if(queuePending[key]||queueBlocked())re
 function checkQueueAction(action,args,key,retry){
  var operation=queueFailed[key];if(!operation)return;
  if(action==='cancelQueueTicket'){delete queueFailed[key];loadQueueList();return;}
- staffRun().withSuccessHandler(function(s){if(s.state==='DONE'){finishQueueAction(action,s.result,key);return;}if(s.state==='REJECTED'){delete queueFailed[key];delete queueAdmissionArgs[key];renderQueueReview();showError(s.message+' 最新内容を読み直して確認してください。');loadQueueList();return;}
+ staffRun().withSuccessHandler(function(s){if(s.state==='DONE'){finishQueueAction(action,s.result,key);return;}if(s.state==='REJECTED'){delete queueFailed[key];delete queueAdmissionArgs[key];queueQuickPayment={key:'',checked:false};renderQueueReview();showError(s.message+' 最新内容を読み直して確認してください。');loadQueueList();return;}
  if(s.state==='NOT_FOUND'&&retry&&window.confirm('保存記録がありません。同じ操作番号で再送しますか？')){sendQueueAction(action,args,key,operation);return;}showError('保存状態：'+s.state+'。再操作前に既存番号を確認してください。');}).withFailureHandler(function(){showError('保存成否を確認できません。同じ操作ボタンで保存状態を再確認してください。');}).getStaffMutationStatus(operation.requestId);
 }
 function loadQueueList(){var generation=++queueGeneration;staffRun().withSuccessHandler(function(d){if(generation!==queueGeneration)return;document.getElementById('modeLabel').textContent=MODE_LABEL[d.mode]||d.mode;document.getElementById('onIceCount').textContent=d.onIceCount;document.getElementById('calledCount').textContent=d.calledCount;renderQueueRows(d.called,'calledList');renderQueueRows(d.waiting,'waitingList');queueBatchWaitingCount=d.waiting.length;updateQueueBatchControls_();document.getElementById('updatedAt').textContent=' 更新：'+new Date().toLocaleTimeString('ja-JP');}).withFailureHandler(function(e){if(generation===queueGeneration)showError('一覧を取得できません：'+e.message);}).getQueueListView();}
-document.getElementById('queueEdit').addEventListener('click',function(){if(!queueSelected||queueEditing||queueBlocked())return;queueEditing=true;document.getElementById('queueEditor').style.display='block';setReceptionFieldsLocked(true);document.getElementById('submitBtn').disabled=true;document.getElementById('submitBtn').textContent=queueSelected.receptionComplete?'変更内容を保存':'料金を確認して受付を確定';loadQueueSelected(queueSelected.ticketNo,true);});
+document.getElementById('queueEdit').addEventListener('click',function(){if(!queueSelected||this.disabled||queueEditing||queueBlocked()||queueAdmissionUnresolved_(queueSelected.ticketNo))return;queueEditing=true;document.getElementById('queueEditor').style.display='block';setReceptionFieldsLocked(true);document.getElementById('submitBtn').disabled=true;document.getElementById('submitBtn').textContent=queueSelected.receptionComplete?'変更内容を保存':'料金を確認して受付を確定';loadQueueSelected(queueSelected.ticketNo,true);});
 document.getElementById('queueReload').addEventListener('click',function(){if(queueSelected)viewQueueTicket(queueSelected.ticketNo);});
-document.getElementById('queuePaper').addEventListener('click',function(){if(queueSelected&&window.confirm('紙の同意書が提出済みで、内容を確認しましたか？'))runQueueAction('markConsentAsPaper',[queueSelected.ticketNo,staffId],'paper:'+queueSelected.ticketNo);});
+document.getElementById('queuePaper').addEventListener('click',function(){if(queueSelected&&!this.disabled&&window.confirm('紙の同意書が提出済みで、内容を確認しましたか？'))runQueueAction('markConsentAsPaper',[queueSelected.ticketNo,staffId],'paper:'+queueSelected.ticketNo);});
+document.getElementById('queueQuickPayment').addEventListener('change',function(){if(this.disabled||!queueSelected)return;queueQuickPayment.checked=this.checked;renderQueueReview();});
+document.getElementById('queueQuickAdmit').addEventListener('click',function(){
+ if(!queueSelected||this.disabled||queueEditing||queueDetailLoading||queueBlocked())return;
+ var q=queueSelected,key='quick-admit:'+q.ticketNo;
+ if(queueFailed[key]&&queueAdmissionArgs[key]){runQueueAction('confirmReceptionAndAdmit',queueAdmissionArgs[key],key);return;}
+ if(queueAdmissionUnresolved_(q.ticketNo)||!queueQuickEligible_(q)||!queueQuickPayment.checked)return;
+ var args=[q.ticketNo,{expectedVersion:q.version,expectedTotal:q.quickAdmissionQuote.total,paymentConfirmed:true,preschoolChildIndexes:queuePreschoolBandIndices_(q).slice()},staffId];
+ queueAdmissionArgs[key]=args;runQueueAction('confirmReceptionAndAdmit',args,key);
+});
 document.getElementById('queueAdmit').addEventListener('click',function(){
  if(!queueSelected||queueEditing||this.disabled||queueDetailLoading||queueBlocked())return;
  var q=queueSelected,key='admit:'+q.ticketNo;
@@ -735,5 +775,6 @@ document.getElementById('callWaitingBatch').addEventListener('click',function(){
  if(queueFailed['call-batch']||window.confirm('空き人数に収まる組を、受付順にまとめて呼び出します。呼出期限が開始します。よろしいですか？'))runQueueAction('callWaitingBatch',[],'call-batch');
 });
 
-renderAdminSidebar('queuelist');staffRun().withSuccessHandler(function(s){document.getElementById('staffLabel').textContent=s.staffName;}).getStaffById(staffId);loadQueueList();setInterval(function(){if(!document.hidden)loadQueueList();},15000);
+function queueOpenReceptionReview_(){var raw=null,value,now=Date.now(),parts={};try{raw=sessionStorage.getItem('icepark-reception-review-ticket');sessionStorage.removeItem('icepark-reception-review-ticket');if(!raw)return;value=JSON.parse(raw);}catch(e){return;}new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Tokyo',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date(now)).forEach(function(v){parts[v.type]=v.value;});if(value&&typeof value.ticketNo==='string'&&/^[0-9]{1,12}$/.test(value.ticketNo)&&typeof value.savedAt==='number'&&Number.isSafeInteger(value.savedAt)&&now-value.savedAt>=0&&now-value.savedAt<=300000&&value.dayKey===parts.year+'-'+parts.month+'-'+parts.day)loadQueueSelected(value.ticketNo,false,true);}
+renderAdminSidebar('queuelist');queueOpenReceptionReview_();staffRun().withSuccessHandler(function(s){document.getElementById('staffLabel').textContent=s.staffName;}).getStaffById(staffId);loadQueueList();setInterval(function(){if(!document.hidden)loadQueueList();},15000);
 </script></body></html>
