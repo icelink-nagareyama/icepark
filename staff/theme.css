@@ -894,3 +894,8 @@ input.premium-ticket-number:disabled{-webkit-text-fill-color:#85600c;opacity:1}
 
 
 .band-pass-label{display:inline-block;margin-left:8px;font-size:12px;font-weight:700;padding:2px 8px;border:1px solid #dce6ee;border-radius:6px;color:#526c83;background:#f4f7fa;white-space:nowrap}.band-pass-label--premium{color:#85600c;background:#fff7df;border-color:#d9bf7a}
+
+/* Larger staff checkboxes with a touch-sized label target. */
+input[type="checkbox"]{width:24px!important;height:24px!important;min-width:24px;min-height:24px;flex:0 0 24px;vertical-align:middle;cursor:pointer}
+label:has(input[type="checkbox"]){display:flex;align-items:center;gap:10px;min-height:44px;box-sizing:border-box;cursor:pointer}
+input[type="checkbox"]:disabled{cursor:default}
