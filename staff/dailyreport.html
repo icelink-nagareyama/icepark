@@ -4,6 +4,7 @@
   <meta name="referrer" content="no-referrer">
   <base target="_top">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Noto+Sans+JP:wght@400;500;600;700&display=swap"><link rel="stylesheet" href="theme.css"><script src="common.js"></script>
+  <style>#dailyCloseBalancesCard{overflow-wrap:anywhere}.daily-close-balance{border-top:1px solid #d5e5ed;padding:14px 0;line-height:1.8}.daily-close-balance p{margin:4px 0}.daily-close-balance strong{font-size:18px}</style>
 </head>
 <body data-layout-page="DailyReport" class="layout-refresh">
   <section id="operationBar" class="operation-bar" aria-label="本日の運営情報">
@@ -75,6 +76,7 @@ $('rinkSave').onclick=function(){if(busy||pending||!view)return;var input={busin
         <button class="btn btn-outline" id="fuelRetry" type="button" style="display:none;">給油・整氷・清掃の転記を再確認（管理者）</button>
       </div>
 
+      <section class="card" id="dailyCloseBalancesCard" style="display:none" aria-labelledby="dailyCloseBalancesTitle"><div class="section-title" id="dailyCloseBalancesTitle">日次締め・追加請求なしの記録</div><p>日報で選択した日付の整理記録です。日次締めでは追加料金を作らず、既存の売上を保持します。過去の未徴収・要確認の記録がある場合も売上とは分けて表示します。この画面では徴収処理は行いません。</p><p id="dailyCloseBalancesDate"></p><div id="dailyCloseBalancesList" role="status" aria-live="polite"></div></section>
       <div class="card" id="adminCard" style="display:none;">
         <div class="section-title">
           <span>日報を閲覧（管理者のみ）</span>
@@ -153,6 +155,7 @@ $('rinkSave').onclick=function(){if(busy||pending||!view)return;var input={busin
     function loadNotesForSelectedDate() {
       var date = document.getElementById('dateSelect').value;
       if (!date) return;
+      loadDailyCloseBalances_(date);
       if(window.loadRinkConditionHistory)window.loadRinkConditionHistory(date);
       clearError();
       staffRun().withSuccessHandler(function(v){var box=document.getElementById('dailyHistory');box.replaceChildren();if(!v.report){box.textContent='この日の運営チェックは未登録です。';return;}var r=v.report;[['給油量',r.fuelLiters===null?'給油なし（空欄）':r.fuelLiters+' L'],['会場内の清掃',r.cleaning==='DONE'?'実施済み':'未実施'],['開始前の整氷',r.iceBefore==='DONE'?'実施済み':'未実施'],['終了時の整氷',r.iceAfter==='DONE'?'実施済み':'未実施'],['備考',r.note||'—']].forEach(function(pair){var p=document.createElement('p');p.textContent=pair[0]+'：'+pair[1];box.appendChild(p);});}).withFailureHandler(function(e){document.getElementById('dailyHistory').textContent='運営チェックを取得できません。';}).getDailyOperationsReportView(date);
@@ -191,6 +194,7 @@ $('rinkSave').onclick=function(){if(busy||pending||!view)return;var input={busin
               staff.staffName + (staff.role === 'ADMIN' ? '（管理者）' : '');
             isAdmin = (staff.role === 'ADMIN');
             document.getElementById('adminCard').style.display = isAdmin ? 'block' : 'none';
+            document.getElementById('dailyCloseBalancesCard').style.display=isAdmin?'block':'none';
             refreshDaily(true);
             if (isAdmin) loadDates();
           }
@@ -198,6 +202,18 @@ $('rinkSave').onclick=function(){if(busy||pending||!view)return;var input={busin
         .getStaffById(staffId);
     }
 
+    var dailyCloseBalancesGeneration=0;
+    function loadDailyCloseBalances_(date){
+      if(!isAdmin||!date)return;var generation=++dailyCloseBalancesGeneration,box=document.getElementById('dailyCloseBalancesList');document.getElementById('dailyCloseBalancesDate').textContent='対象日：'+date;box.textContent='日次締めの記録を読み込み中…';
+      staffRun().withSuccessHandler(function(rows){
+        if(generation!==dailyCloseBalancesGeneration||!isAdmin||document.getElementById('dateSelect').value!==date)return;
+        box.replaceChildren();if(!Array.isArray(rows)){box.textContent='日次締めの記録を確認できません。再表示してください。';return;}if(!rows.length){box.textContent='この日の日次締め記録はありません。';return;}
+        var unpaid=0,review=0;rows.forEach(function(r){if(r&&r.status==='UNPAID'&&Number.isSafeInteger(r.amount)&&r.amount>=0)unpaid+=r.amount;else if(!r||r.status==='REVIEW_REQUIRED'||!['UNPAID','NO_CHARGE'].includes(r.status)||(r.status==='UNPAID'&&(!Number.isSafeInteger(r.amount)||r.amount<0)))review++;});
+        var summary=document.createElement('p'),noCharge=rows.filter(function(r){return r&&r.status==='NO_CHARGE';}).length;summary.textContent=(rows.some(function(r){return r&&r.status==='UNPAID';})?'過去の未徴収合計：¥'+unpaid.toLocaleString()+'／':'')+'追加請求なし：'+noCharge+'件／要確認：'+review+'件（要確認分は金額集計に含めません）';box.appendChild(summary);
+        rows.forEach(function(r){r=r||{};var row=document.createElement('div');row.className='daily-close-balance';var state=['UNPAID','NO_CHARGE','REVIEW_REQUIRED'].includes(r.status)?r.status:'REVIEW_REQUIRED';if(state==='UNPAID'&&(!Number.isSafeInteger(r.amount)||r.amount<0))state='REVIEW_REQUIRED';var title=document.createElement('strong');title.textContent=state==='UNPAID'?'未徴収：¥'+r.amount.toLocaleString():state==='NO_CHARGE'?'追加請求なし':'要確認：金額未確定';row.appendChild(title);[['受付番号',r.ticketNo],['バンド番号',r.bandNo],['利用日',r.dayKey],['締め時刻',r.cutoffLabel],['理由',r.reason]].forEach(function(pair){var p=document.createElement('p');p.textContent=pair[0]+'：'+(pair[1]===undefined||pair[1]===null||pair[1]===''?'—':String(pair[1]));row.appendChild(p);});box.appendChild(row);});
+      }).withFailureHandler(function(e){if(generation!==dailyCloseBalancesGeneration||!isAdmin||document.getElementById('dateSelect').value!==date)return;box.textContent='日次締めの記録を取得できません。'+(e&&e.message||e);}).getDailyCloseBalances(date,staffId);
+    }
+    document.getElementById('dateSelect').addEventListener('change',function(){loadDailyCloseBalances_(this.value);});
     renderAdminSidebar('dailyreport');
     loadStaffLabel();
   </script>
