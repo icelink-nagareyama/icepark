@@ -140,7 +140,15 @@ var logoTemplate=document.createElement("template");logoTemplate.id="appLogoTemp
    *   var staffId, baseUrl（doGetから渡される値）
    * 呼び出すと #adminSidebar の中身を組み立てる。
    */
+  var operationBarEnabled_=false;
+  function renderStaffEnvironmentNotice_(staff){
+    if(operationBarEnabled_)return;
+    var main=document.querySelector('.main-content');if(!main)return;
+    var notice=document.getElementById('staffEnvironmentNotice');if(!notice){notice=document.createElement('p');notice.id='staffEnvironmentNotice';notice.setAttribute('role','status');notice.style.cssText='margin:0 0 12px;font-size:13px;font-weight:700;line-height:1.5';main.prepend(notice);}
+    var known=staff&&typeof staff.testMode==='boolean';notice.textContent=!known?'接続先を確認中…':staff.testMode?'テストモード：本番への保存・LINE送信なし':'本番';notice.style.color=known&&staff.testMode?'#a22232':'#52657a';
+  }
   function renderAdminSidebar(activePage) {
+    operationBarEnabled_=activePage==='top';renderStaffEnvironmentNotice_(null);
     var mount = document.getElementById('adminSidebar');
     if (!mount) return;
     function pageUrl(page) {
@@ -195,6 +203,7 @@ var logoTemplate=document.createElement("template");logoTemplate.id="appLogoTemp
     draw(false); // 権限確認が終わるまでは売上リンクを出さない。
     if (typeof staffId !== 'undefined' && staffId) {
       staffRun().withSuccessHandler(function (staff) {
+        renderStaffEnvironmentNotice_(staff);
         var admin = staff.role === 'ADMIN';
         draw(false, admin);
         if(!admin)return; // Staff never request sales access or sales analysis.
@@ -235,6 +244,7 @@ var logoTemplate=document.createElement("template");logoTemplate.id="appLogoTemp
 
   function isStaffWideLayout_(){return window.matchMedia('(min-width:1200px), (min-width:1024px) and (orientation:landscape)').matches;}
   function renderOperationBar() {
+    if(!operationBarEnabled_){var inactive=document.getElementById('operationBar');if(inactive)inactive.remove();document.documentElement.style.setProperty('--operation-bar-height','0px');return;}
     if (operationBarTimer_ !== null) return;
     var bar = document.getElementById('operationBar');
     if (!bar) return; // 全スタッフHTMLの先頭にOperationHeaderを直接挿入済み。
@@ -281,6 +291,7 @@ var logoTemplate=document.createElement("template");logoTemplate.id="appLogoTemp
   }
 
   function refreshOperationBar(forceDaily) {
+    if(!operationBarEnabled_)return;
     if(forceDaily===true)operationBarForceDaily_=true;
     if (operationBarLoading_) { operationBarVersion_++; return; }
     var version = ++operationBarVersion_;
