@@ -293,6 +293,8 @@ body.mp-dark { background:radial-gradient(ellipse at top,#123248,#021522 65%); }
 .owned-pass-wrap .mp-reentry-note { margin: 0 18px 18px; padding: 16px; border: 1px solid var(--pass-border); border-radius: 12px; background: #0d2c3d; color: #ffe9b3; font-size: 15px; line-height: 1.85; }
 .owned-pass-wrap .mp-reentry-note strong { display: block; font-size: 16px; line-height: 1.8; }
 .owned-pass-wrap .mp-reentry-note p { margin: 10px 0 0; font-size: 14px; line-height: 1.85; }
+
+#fatalCard .browser-login{width:100%;min-height:48px;margin-top:18px;padding:12px 14px;font-size:15px;text-align:center}#fatalCard .muted a{color:var(--brand);text-underline-offset:3px}
 </style>
 </head>
 <body>
@@ -804,14 +806,26 @@ document.querySelector(".owned-pass-wrap").appendChild(document.createRange().cr
       var entryView=['consent','reception','status','passapply'].includes(requestedView)?requestedView:'';
       showEntryHeading_(entryView);
       if (!window.liff.isLoggedIn()) {
-        fatal('LINEへのログインが必要です。「LINEでログイン」を押してください。');
-        var btn = document.createElement('button'); btn.className = 'btn'; btn.textContent = 'LINEでログイン';
+        fatal('スマートフォンでは公式LINEを開き、メニューからお進みください。PCやLINEアプリのない端末では、ブラウザでログインできます。');
+        var entryNames={reception:'事前受付',status:'受付状況',consent:'同意書',passapply:'マイパス'};
+        var menuName=entryNames[entryView]||'マイパス';
+        var appLink=document.createElement('a');appLink.className='btn';appLink.href='https://line.me/R/oaMessage/%40849oplqi';appLink.textContent='公式LINEを開く';
+        $('fatalCard').appendChild(appLink);
+        var guide=document.createElement('p');guide.className='muted';guide.textContent='公式LINEのメニューから「'+menuName+'」へお進みください。'+(entryView==='passapply'?'「マイパス」からシーズンパス申込を開けます。':'');$('fatalCard').appendChild(guide);
+        var btn = document.createElement('button'); btn.className = 'btn secondary browser-login'; btn.textContent = 'ブラウザでLINEにログイン';
+        var loginResetTimer;
+        function resetLogin(){clearTimeout(loginResetTimer);btn.disabled=false;btn.textContent='ブラウザでLINEにログイン';}
         btn.addEventListener('click', function () {
-          btn.disabled = true;
+          btn.disabled = true;btn.textContent='ログイン画面を開いています…';
+          loginResetTimer=setTimeout(function(){resetLogin();$('fatalMsg').textContent='ログイン画面へ進まない場合は、もう一度お試しください。アプリを開く場合は「公式LINEを開く」を押してください。';},8000);
           try { window.liff.login({redirectUri:window.location.origin + window.location.pathname + (entryView ? '?view='+encodeURIComponent(entryView) : '')}); }
-          catch (e) { btn.disabled = false; fatal('LINEログインを開始できませんでした。LINEから開き直してください。'); }
+          catch (e) { resetLogin();fatal('LINEログインを開始できませんでした。再試行するか、公式LINEから開き直してください。'); }
         });
-        $('fatalCard').appendChild(btn); return;
+        window.addEventListener('pageshow',resetLogin);
+        $('fatalCard').appendChild(btn);
+        var help=document.createElement('p');help.className='muted';help.textContent='LINEアプリが開かない場合は、Safari・Chromeなどのブラウザで開き直してください。';
+        var install=document.createElement('a');install.href='https://line.me/ja/download';install.textContent='LINEをインストールする';help.appendChild(document.createElement('br'));help.appendChild(install);$('fatalCard').appendChild(help);
+        return;
       }
               if (entryView) {
           window.startCustomerPortal({view:entryView,liffId:LIFF_ID,baseUrl:BASE_URL});
