@@ -86,16 +86,19 @@ var logoTemplate=document.createElement("template");logoTemplate.id="appLogoTemp
     };loadQuote();
   }
 
-  var frontDeskBackgroundJobs_={},frontDeskBackgroundTimer_=null;
+  var frontDeskBackgroundJobs_={},frontDeskBackgroundTimer_=null,frontDeskForegroundInFlight_=0,frontDeskLastActivity_=Date.now();
+  ["pointerdown","keydown"].forEach(function(type){document.addEventListener(type,function(){frontDeskLastActivity_=Date.now();},{capture:true,passive:true});});
   function storeFrontDeskBackground_(){try{sessionStorage.setItem('icepark-frontdesk-background-v1',JSON.stringify(Object.keys(frontDeskBackgroundJobs_).slice(-30)));}catch(ignore){}}
   function scheduleFrontDeskBackground_(id){
     if(typeof id==='string'&&/^[a-zA-Z0-9_-]{16,100}$/.test(id)){if(!frontDeskBackgroundJobs_[id])frontDeskBackgroundJobs_[id]={tries:0};storeFrontDeskBackground_();}
     if(frontDeskBackgroundTimer_!==null||!Object.keys(frontDeskBackgroundJobs_).length)return;
-    frontDeskBackgroundTimer_=setTimeout(runFrontDeskBackground_,0);
+    frontDeskBackgroundTimer_=setTimeout(runFrontDeskBackground_,12000);
   }
   function frontDeskBackgroundNotice_(message){var e=document.getElementById('frontDeskBackgroundNotice');if(!e){e=document.createElement('p');e.id='frontDeskBackgroundNotice';e.setAttribute('role','status');e.style.cssText='font-size:13px;line-height:1.6;color:#856009';var main=document.querySelector('.main-content');if(main)main.prepend(e);}e.textContent=message;}
   function runFrontDeskBackground_(){
     frontDeskBackgroundTimer_=null;
+    var remaining=12000-(Date.now()-frontDeskLastActivity_);
+    if(frontDeskForegroundInFlight_>0||remaining>0){frontDeskBackgroundTimer_=setTimeout(runFrontDeskBackground_,Math.max(1000,remaining));return;}
     var id=Object.keys(frontDeskBackgroundJobs_).filter(function(k){return !frontDeskBackgroundJobs_[k].busy&&frontDeskBackgroundJobs_[k].tries<3;})[0];if(!id)return;
     var state=frontDeskBackgroundJobs_[id];state.busy=true;state.tries++;
     function next(){storeFrontDeskBackground_();if(frontDeskBackgroundTimer_===null)frontDeskBackgroundTimer_=setTimeout(runFrontDeskBackground_,5000);}
@@ -121,22 +124,25 @@ var logoTemplate=document.createElement("template");logoTemplate.id="appLogoTemp
         var started=Date.now();
         var args = Array.prototype.slice.call(arguments);
         var mutations = ['confirmEditedReceptionAndAdmit','confirmReceptionAndAdmit','configureMidnightClose','confirmClosingBatchExit','sendTestLineNotification','issueTestReceptionTicket','issueWalkInTicket','confirmReceptionDetails','addAidRentalForGuest','returnAidRentalForGuest','callTicketManually','admitToIce','exitWristbandAndFinalize','exitTicketAndFinalize','markConsentAsPaper'];
+        var foreground=mutations.indexOf(action)!==-1;if(foreground){frontDeskForegroundInFlight_++;frontDeskLastActivity_=Date.now();}
+        var foregroundDone=false;function finishForeground(){if(foreground&&!foregroundDone){foregroundDone=true;frontDeskForegroundInFlight_=Math.max(0,frontDeskForegroundInFlight_-1);frontDeskLastActivity_=Date.now();}}
         var key = action + JSON.stringify(args);
         var meta = operation;
         if (mutations.indexOf(action) !== -1 && !meta) {
           meta = staffPendingOperations_[key] || (staffPendingOperations_[key] = makeStaffOperation_());
         }
-        google.script.run.withSuccessHandler(function (result) {
-          frontDeskResponseMeta_(action,result,started);
+        try{google.script.run.withSuccessHandler(function (result) {
+          finishForeground();frontDeskResponseMeta_(action,result,started);
           delete staffPendingOperations_[key]; success(result);
           if (mutations.indexOf(action) !== -1) window.dispatchEvent(new CustomEvent('staff-operation-complete', { detail: { action: action, result: result } }));
         }).withFailureHandler(function (err) {
+          finishForeground();
           if (String(err && err.message || err).indexOf('AUTH_REQUIRED:') !== -1) {
             window.top.location.href = baseUrl + '?page=login';
             return;
           }
           failure(err);
-        }).staffApi(action, args, typeof sessionToken === 'undefined' ? '' : sessionToken, meta || null);
+        }).staffApi(action, args, typeof sessionToken === 'undefined' ? '' : sessionToken, meta || null);}catch(err){finishForeground();failure(err);}
       };
     }});
     return runner;

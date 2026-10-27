@@ -22,7 +22,7 @@
 @media(max-width:600px){.test-reception .test-reception-fields{grid-template-columns:repeat(2,minmax(0,1fr))}.test-reception .field:first-child{grid-column:1/-1}.test-reception .test-reception-actions>.btn{width:100%}}
 </style>
 <div class="section-eyebrow">TEST MODE</div><h2 class="section-title" id="testReceptionTitle">発券から運営を試す</h2>
-<p class="loading">テスト用の整理券を発行して、内容・料金確認 → 同意確認 → 入場 → 貸出・返却 → 退場まで練習できます。データはテスト用シートに保存され、LINE通知は送信されません。</p>
+<p class="loading">テスト用の整理券を発行して、内容確認 → 同意・支払い確認 → 入場 → 貸出・返却 → 退場まで練習できます。データはテスト用シートに保存され、LINE通知は送信されません。</p>
 <div class="test-reception-fields">
 <div class="field"><label for="testCustomerName">テスト用の氏名</label><input id="testCustomerName" maxlength="100" value="テストのお客様" autocomplete="off"></div>
 <div class="field"><label for="testAdults">大人の人数</label><input id="testAdults" type="number" inputmode="numeric" min="0" max="50" step="1" value="1"></div>
@@ -32,8 +32,8 @@
 <p class="loading">発券結果が不明なときは画面を更新せず、「保存状態を確認」を使ってください。</p>
 <p id="testTicketNotice" role="status" aria-live="polite"></p>
 <div id="testTicketResult" class="test-reception-result" hidden><div>テスト受付番号</div><div id="testTicketNumber" class="test-reception-number"></div>
-<div class="test-reception-actions"><button type="button" class="btn" id="openTestReception">この番号で受付を確認</button><a class="btn btn-outline" id="testQueueLink">同意確認・入場へ</a></div>
-<p class="loading">まず「この番号で受付を確認」で内容・料金を確定してください。次に受付一覧の「紙の同意書で受理」で同意確認を練習し、入場を確定できます。実際のGoogleフォーム・LINE連携の確認は別途必要です。</p></div>
+<div class="test-reception-actions"><button type="button" class="btn" id="openTestReception">この番号で受付を進める</button><a class="btn btn-outline" id="testQueueLink">同意確認・入場へ</a></div>
+<p class="loading">「この番号で受付を進める」を押し、同意書・支払いを確認して「入場を確定」を押してください。実際のGoogleフォーム・LINE連携の確認は別途必要です。</p></div>
 <details id="testLineDetails" class="test-line-details">
 <summary>LINE通知の本文・履歴を確認</summary>
 <p class="loading">履歴はテスト操作で作られた送信予定です。実際のLINEには届きません。本文見本の氏名・番号・日時・金額は仮の値です。</p>
