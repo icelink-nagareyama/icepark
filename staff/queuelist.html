@@ -10,8 +10,8 @@
  .queue-detail-layout.is-editing #queueReview{grid-column:1;grid-row:1;margin-bottom:0;min-width:0}
  .queue-detail-layout.is-editing #queueEditor{display:contents!important}
  .queue-detail-layout.is-editing #queueEditor #formCard[style*="grid"]{display:contents!important}
- .queue-detail-layout.is-editing #formCard>.card{grid-column:1/-1;grid-row:2;margin-bottom:0;min-width:0}
- .queue-detail-layout.is-editing #formCard>.two-col-side{grid-column:2;grid-row:1;align-self:start;min-width:0}
+ .queue-detail-layout.is-editing #formCard>.card{grid-column:1;grid-row:2;margin-bottom:0;min-width:0}
+ .queue-detail-layout.is-editing #formCard>.two-col-side{grid-column:2;grid-row:1 / span 2;align-self:start;min-width:0;position:sticky;top:calc(var(--operation-bar-height,0px) + 12px);max-height:calc(100vh - var(--operation-bar-height,0px) - 24px);max-height:calc(100dvh - var(--operation-bar-height,0px) - 24px);overflow-y:auto;overscroll-behavior:contain;z-index:2;border-radius:14px;box-shadow:0 8px 24px rgba(16,43,67,.08)}
  .queue-detail-layout.is-editing #queueEditor :is(#receptionErrorBox,#receptionRecovery,#resultCard){grid-column:1/-1;min-width:0}
  .queue-detail-layout.is-editing #queueEditor .fee-summary{margin-bottom:0}
  .queue-detail-layout.is-editing #queueEditor .reception-people{grid-template-columns:repeat(2,minmax(0,1fr))}
