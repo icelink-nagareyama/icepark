@@ -85,12 +85,40 @@ var logoTemplate=document.createElement("template");logoTemplate.id="appLogoTemp
       runner[exitAction].apply(null,groupTicket?[groupTicket,staffId,confirmation]:[bandNo,'',staffId,confirmation]);
     };loadQuote();
   }
+
+  var frontDeskBackgroundJobs_={},frontDeskBackgroundTimer_=null;
+  function storeFrontDeskBackground_(){try{sessionStorage.setItem('icepark-frontdesk-background-v1',JSON.stringify(Object.keys(frontDeskBackgroundJobs_).slice(-30)));}catch(ignore){}}
+  function scheduleFrontDeskBackground_(id){
+    if(typeof id==='string'&&/^[a-zA-Z0-9_-]{16,100}$/.test(id)){if(!frontDeskBackgroundJobs_[id])frontDeskBackgroundJobs_[id]={tries:0};storeFrontDeskBackground_();}
+    if(frontDeskBackgroundTimer_!==null||!Object.keys(frontDeskBackgroundJobs_).length)return;
+    frontDeskBackgroundTimer_=setTimeout(runFrontDeskBackground_,0);
+  }
+  function frontDeskBackgroundNotice_(message){var e=document.getElementById('frontDeskBackgroundNotice');if(!e){e=document.createElement('p');e.id='frontDeskBackgroundNotice';e.setAttribute('role','status');e.style.cssText='font-size:13px;line-height:1.6;color:#856009';var main=document.querySelector('.main-content');if(main)main.prepend(e);}e.textContent=message;}
+  function runFrontDeskBackground_(){
+    frontDeskBackgroundTimer_=null;
+    var id=Object.keys(frontDeskBackgroundJobs_).filter(function(k){return !frontDeskBackgroundJobs_[k].busy&&frontDeskBackgroundJobs_[k].tries<3;})[0];if(!id)return;
+    var state=frontDeskBackgroundJobs_[id];state.busy=true;state.tries++;
+    function next(){storeFrontDeskBackground_();if(frontDeskBackgroundTimer_===null)frontDeskBackgroundTimer_=setTimeout(runFrontDeskBackground_,5000);}
+    staffRun().withSuccessHandler(function(r){state.busy=false;if(!r.pending)delete frontDeskBackgroundJobs_[id];if(r.error)frontDeskBackgroundNotice_('受付・入場の保存結果とは別に、付随ログの保存を再試行しています。');else if(!r.schedulerInstalled&&!r.testOnly)frontDeskBackgroundNotice_('付随ログの自動再開設定を管理者に確認してください。');else if(!Object.keys(frontDeskBackgroundJobs_).length)frontDeskBackgroundNotice_('');next();}).withFailureHandler(function(){state.busy=false;frontDeskBackgroundNotice_('受付・入場の保存結果とは別に、付随ログの保存状態を確認しています。');next();}).processFrontDeskBackground(id);
+  }
+  function resumeFrontDeskBackground_(){try{var saved=JSON.parse(sessionStorage.getItem('icepark-frontdesk-background-v1')||'[]');if(Array.isArray(saved))saved.slice(-30).forEach(function(id){scheduleFrontDeskBackground_(id);});}catch(ignore){}}
+  function frontDeskResponseMeta_(action,result,started){
+    if(!result||typeof result!=='object')return;
+    if(typeof result._serverProcessingMs==='number'){
+      var timing={action:action,roundTripMs:Date.now()-started,serverMs:result._serverProcessingMs};
+      window.iceparkFrontDeskTiming=timing;console.info('frontdesk-performance',timing);delete result._serverProcessingMs;
+    }
+    var id=result._backgroundOperationId;if(id){delete result._backgroundOperationId;scheduleFrontDeskBackground_(id);}
+    if(action==='getStaffMutationStatus'&&result.result)frontDeskResponseMeta_(result.action||action,result.result,started);
+  }
+
   function staffRun(operation) {
     var success = function () {}, failure = function (err) { window.alert(err.message || err); };
     var runner = new Proxy({}, { get: function (_, action) {
       if (action === 'withSuccessHandler') return function (fn) { success = fn; return runner; };
       if (action === 'withFailureHandler') return function (fn) { failure = fn; return runner; };
       return function () {
+        var started=Date.now();
         var args = Array.prototype.slice.call(arguments);
         var mutations = ['confirmEditedReceptionAndAdmit','confirmReceptionAndAdmit','configureMidnightClose','confirmClosingBatchExit','sendTestLineNotification','issueTestReceptionTicket','issueWalkInTicket','confirmReceptionDetails','addAidRentalForGuest','returnAidRentalForGuest','callTicketManually','admitToIce','exitWristbandAndFinalize','exitTicketAndFinalize','markConsentAsPaper'];
         var key = action + JSON.stringify(args);
@@ -99,6 +127,7 @@ var logoTemplate=document.createElement("template");logoTemplate.id="appLogoTemp
           meta = staffPendingOperations_[key] || (staffPendingOperations_[key] = makeStaffOperation_());
         }
         google.script.run.withSuccessHandler(function (result) {
+          frontDeskResponseMeta_(action,result,started);
           delete staffPendingOperations_[key]; success(result);
           if (mutations.indexOf(action) !== -1) window.dispatchEvent(new CustomEvent('staff-operation-complete', { detail: { action: action, result: result } }));
         }).withFailureHandler(function (err) {
@@ -148,7 +177,7 @@ var logoTemplate=document.createElement("template");logoTemplate.id="appLogoTemp
     var known=staff&&typeof staff.testMode==='boolean';notice.textContent=!known?'接続先を確認中…':staff.testMode?'テストモード：本番への保存・LINE送信なし':'本番';notice.style.color=known&&staff.testMode?'#a22232':'#52657a';
   }
   function renderAdminSidebar(activePage) {
-    operationBarEnabled_=activePage==='top';renderStaffEnvironmentNotice_(null);
+    operationBarEnabled_=activePage==='top';renderStaffEnvironmentNotice_(null);resumeFrontDeskBackground_();
     var mount = document.getElementById('adminSidebar');
     if (!mount) return;
     function pageUrl(page) {
