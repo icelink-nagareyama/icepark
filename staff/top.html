@@ -272,31 +272,17 @@ function PreschoolFields_(prefix,children,anchor,adults){
     }
 
     function schedulePreview() {
+      previewVersion++;if(typeof window.onReceptionInputChange_==="function")window.onReceptionInputChange_();
       clearTimeout(previewTimer);
       previewTimer = setTimeout(function () { runPreview(); runSeasonPassCheck(); }, 300);
     }
     function runPreview() {
-      var input = currentInput();
-      var requestVersion = ++previewVersion;
-      if (input.adults + input.children <= 0) {
-        document.getElementById('feePreview').textContent = '-';
-        document.getElementById('feeBreakdown').innerHTML = '';
-        return;
-      }
-      staffRun()
-        .withSuccessHandler(function (fee) {
-          if (requestVersion !== previewVersion) return;
-          document.getElementById('feePreview').textContent = '¥' + fee.total.toLocaleString();
-          var b = fee.breakdown || {};
-          b.seasonPassDiscount = fee.seasonPassDiscount;
-          document.getElementById('feeBreakdown').innerHTML = formatBreakdown_(b);
-        })
-        .withFailureHandler(function () {
-          if (requestVersion !== previewVersion) return;
-          document.getElementById('feePreview').textContent = '-';
-          document.getElementById('feeBreakdown').innerHTML = '';
-        })
-        .previewReceptionFee(input);
+      var input=currentInput(),requestVersion=++previewVersion;
+      if(input.adults+input.children<=0){document.getElementById('feePreview').textContent='-';document.getElementById('feeBreakdown').innerHTML='';return;}
+      function done(fee){if(requestVersion!==previewVersion)return;document.getElementById('feePreview').textContent='\u00a5'+fee.total.toLocaleString();var b=fee.breakdown||{};b.seasonPassDiscount=fee.seasonPassDiscount;document.getElementById('feeBreakdown').innerHTML=formatBreakdown_(b);}
+      function failed(){if(requestVersion!==previewVersion)return;document.getElementById('feePreview').textContent='-';document.getElementById('feeBreakdown').innerHTML='';}
+      if(typeof window.requestEditedAdmissionPreview_==='function'&&window.requestEditedAdmissionPreview_(input,done,failed))return;
+      staffRun().withSuccessHandler(done).withFailureHandler(failed).previewReceptionFee(input);
     }
 
     // 見込み金額の内訳（小計）を1行ずつのHTMLにする。0件の項目は表示しない。
