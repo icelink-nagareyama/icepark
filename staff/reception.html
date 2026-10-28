@@ -358,7 +358,7 @@ function PreschoolFields_(prefix,children,anchor,adults){
     function schedulePreview() {
       previewVersion++;if(typeof window.onReceptionInputChange_==="function")window.onReceptionInputChange_();
       clearTimeout(previewTimer);
-      previewTimer = setTimeout(function () { runPreview(); runSeasonPassCheck(); }, 300);
+      previewTimer = setTimeout(function () { runPreview(); runSeasonPassCheck(); }, 180);
     }
     function runPreview() {
       var input=currentInput(),requestVersion=++previewVersion;
