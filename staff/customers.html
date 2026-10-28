@@ -50,6 +50,11 @@
       <div class="card" id="resultsCard" style="display:none;">
         <div class="section-title">検索結果</div>
         <div id="resultsList"></div>
+        <div class="center mt-16" id="searchPager" hidden>
+          <button class="btn btn-outline" id="searchPrev" style="min-height:44px;">前へ</button>
+          <span id="searchPageInfo" role="status" aria-live="polite"></span>
+          <button class="btn btn-outline" id="searchNext" style="min-height:44px;">次へ</button>
+        </div>
       </div>
 
       <div class="card" id="detailCard" style="display:none;">
@@ -99,48 +104,38 @@
       window.top.location.href = baseUrl + '?page=seasonpass';
     });
 
-    document.getElementById('searchBtn').addEventListener('click', function () {
-      clearError();
-      var q = document.getElementById('searchQuery').value.trim();
-      if (!q) { showError('検索キーワードを入力してください'); return; }
-      document.getElementById('detailCard').style.display = 'none';
-      staffRun()
-        .withSuccessHandler(renderResults)
-        .withFailureHandler(function (err) { showError((err && err.message ? err.message : err)); })
-        .searchCustomers(q);
-    });
-
-    function renderResults(list) {
-      var card = document.getElementById('resultsCard');
-      var box = document.getElementById('resultsList');
-      card.style.display = 'block';
-      if (list.length === 0) {
-        box.innerHTML = '<div class="empty-hint">該当する顧客が見つかりません</div>';
-        return;
-      }
-      box.innerHTML = '';
-      list.forEach(function (c) {
-        var row = document.createElement('div');
-        row.className = 'list-row';
-        row.style.cursor = 'pointer';
-        row.innerHTML =
-          '<div class="list-row-top">' +
-            '<div class="list-row-ticket">' + c.holderName + '</div>' +
-            '<span class="tag">' + (STATUS_LABEL[c.status] || c.status) + '</span>' +
-          '</div>' +
-          '<div class="list-row-sub">' + c.planName + '　パス番号：' + c.passNo + '　有効期限：' + c.validToLabel + '</div>';
-        row.addEventListener('click', function () { loadDetail(c.passNo); });
-        box.appendChild(row);
+    var searchGeneration=0,detailGeneration=0,searchState={query:'',page:1,totalPages:0,busy:false};
+    function searchBusy_(busy){searchState.busy=busy;document.getElementById('searchBtn').disabled=busy;document.getElementById('resultsCard').setAttribute('aria-busy',String(busy));document.getElementById('searchPrev').disabled=busy||searchState.page<=1;document.getElementById('searchNext').disabled=busy||searchState.page>=searchState.totalPages;}
+    function searchPage_(query,page){
+      clearError();if(!query){showError('検索キーワードを入力してください');return;}
+      var generation=++searchGeneration;++detailGeneration;searchState.query=query;document.getElementById('detailCard').style.display='none';document.getElementById('resultsCard').style.display='block';document.getElementById('searchPager').hidden=false;document.getElementById('searchPageInfo').textContent='検索中…';searchBusy_(true);
+      staffRun().withSuccessHandler(function(data){if(generation!==searchGeneration)return;renderResults(data);searchBusy_(false);}).withFailureHandler(function(err){if(generation!==searchGeneration)return;searchBusy_(false);document.getElementById('searchPageInfo').textContent='';showError(String(err&&err.message||err));}).searchCustomersPage(query,page,25);
+    }
+    document.getElementById('searchBtn').addEventListener('click',function(){searchPage_(document.getElementById('searchQuery').value.trim(),1);});
+    document.getElementById('searchQuery').addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.isComposing){e.preventDefault();searchPage_(this.value.trim(),1);}});
+    document.getElementById('searchPrev').addEventListener('click',function(){if(!this.disabled)searchPage_(searchState.query,searchState.page-1);});
+    document.getElementById('searchNext').addEventListener('click',function(){if(!this.disabled)searchPage_(searchState.query,searchState.page+1);});
+    function renderResults(data){
+      searchState.page=data.page;searchState.totalPages=data.totalPages;
+      var box=document.getElementById('resultsList');box.textContent='';
+      document.getElementById('searchPager').hidden=false;
+      document.getElementById('searchPageInfo').textContent=data.total+'件 / '+data.page+' / '+Math.max(1,data.totalPages)+'ページ';
+      if(!data.items.length){box.textContent='該当する顧客が見つかりません';return;}
+      data.items.forEach(function(c){
+        var row=document.createElement('button');row.type='button';row.className='list-row';row.style.cssText='width:100%;text-align:left;cursor:pointer;background:transparent;color:inherit;font:inherit;min-height:44px;';
+        var top=document.createElement('div');top.className='list-row-top';var name=document.createElement('div');name.className='list-row-ticket';name.textContent=c.holderName;var status=document.createElement('span');status.className='tag';status.textContent=STATUS_LABEL[c.status]||c.status;top.appendChild(name);top.appendChild(status);row.appendChild(top);
+        var sub=document.createElement('div');sub.className='list-row-sub';sub.textContent=c.planName+' / '+c.passNo+' / '+c.validToLabel;row.appendChild(sub);
+        row.addEventListener('click',function(){if(!searchState.busy)loadDetail(c.passNo);});box.appendChild(row);
       });
     }
 
     var currentPassNo = '';
 
     function loadDetail(passNo) {
-      clearError();
+      clearError();var generation=++detailGeneration;
       staffRun()
-        .withSuccessHandler(renderDetail)
-        .withFailureHandler(function (err) { showError((err && err.message ? err.message : err)); })
+        .withSuccessHandler(function(d){if(generation===detailGeneration)renderDetail(d);})
+        .withFailureHandler(function (err) { if(generation===detailGeneration)showError((err && err.message ? err.message : err)); })
         .getCustomerDetail(passNo);
     }
 

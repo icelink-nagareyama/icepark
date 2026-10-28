@@ -310,27 +310,22 @@
     document.getElementById('closingBatchRefresh').addEventListener('click',function(){closingBatchRead_();});
     document.getElementById('closingBatchExit').addEventListener('click',function(){if(this.disabled||closingBatchState_.busy)return;if(closingBatchState_.unknown){closingBatchRecover_();return;}closingBatchRead_(function(q){if(!closingBatchQuoteValid_(q))return;if(!window.confirm(q.dayKey+' 閉場 '+q.closeLabel+'。対象 '+q.ticketCount+'組・'+q.bandCount+'名を一斉退場にします。延長料金が発生した方は、先に個別精算・退場してください。追加料金は計上しません。補助具は別途返却してください。'))return;closingBatchState_.args=[{dayKey:q.dayKey,version:q.version},staffId];closingBatchState_.operation=makeStaffOperation_();closingBatchSend_();});});
 
-    var onSiteVersion=0;
-    function loadList() {
-      var version=++onSiteVersion;
+    var onSiteVersion=0,onSiteReadBusy_=false,onSiteReadAgain_=false;
+    function onSiteReadFinished_(){onSiteReadBusy_=false;if(onSiteReadAgain_){onSiteReadAgain_=false;loadList();}}
+    function loadList(background) {
+      if(background&&(document.hidden||Object.keys(exitPaymentDialogs_).length||typeof frontDeskForegroundInFlight_!=='undefined'&&frontDeskForegroundInFlight_>0))return;
+      if(onSiteReadBusy_){if(!background){onSiteReadAgain_=true;onSiteVersion++;}return;}
+      onSiteReadBusy_=true;var version=++onSiteVersion;
       if(!closingBatchState_.busy&&!closingBatchState_.unknown)closingBatchRead_();
       if(onSiteAidStatus!=='ready')onSiteAidStatus='loading';renderOnSiteAid_();
-      staffRun()
-        .withSuccessHandler(function (list) {
-          if(version!==onSiteVersion)return;
-          render(list);updateClosingBatchControls_();
-          document.getElementById('updatedAt').textContent = '更新：' + new Date().toLocaleTimeString('ja-JP');
-        })
-        .withFailureHandler(function (err) {
-          if(version!==onSiteVersion)return;
-          showError('一覧の取得に失敗しました：' + (err && err.message ? err.message : err));
-        })
-        .getOnSiteView();
-      staffRun().withSuccessHandler(function(data){
-        if(version!==onSiteVersion)return;
-        if(!data||!Array.isArray(data.active)||!['inUse','available','total'].every(function(key){return typeof data[key]==='number'&&Number.isFinite(data[key]);})){onSiteAidView=null;onSiteAidStatus='error';}
+      staffRun().withSuccessHandler(function(results){
+        onSiteReadFinished_();if(version!==onSiteVersion)return;
+        var view=results&&results[0],aid=results&&results[1],data=aid&&aid.result;
+        if(view&&view.ok){render(view.result);updateClosingBatchControls_();document.getElementById('updatedAt').textContent='更新：'+new Date().toLocaleTimeString('ja-JP');}
+        else showError('一覧の取得に失敗しました：'+String(view&&view.error||'Invalid response'));
+        if(!aid||!aid.ok||!data||!Array.isArray(data.active)||!['inUse','available','total'].every(function(key){return typeof data[key]==='number'&&Number.isFinite(data[key]);})){onSiteAidView=null;onSiteAidStatus='error';}
         else{onSiteAidView=data;onSiteAidStatus='ready';}renderOnSiteAid_();
-      }).withFailureHandler(function(){if(version!==onSiteVersion)return;onSiteAidView=null;onSiteAidStatus='error';renderOnSiteAid_();}).getAidInventoryView();
+      }).withFailureHandler(function(err){onSiteReadFinished_();if(version!==onSiteVersion)return;showError('一覧の取得に失敗しました：'+String(err&&err.message||err));onSiteAidView=null;onSiteAidStatus='error';renderOnSiteAid_();}).getStaffReadBatch([{action:'getOnSiteView',params:[]},{action:'getAidInventoryView',params:[]}]);
     }
 
     function loadStaffLabel() {
@@ -349,7 +344,7 @@
     document.getElementById('onsiteAidManage').href=onSitePageUrl_('aidinventory');
     loadStaffLabel();
     loadList();
-    setInterval(loadList, 15000);
+    setInterval(function(){loadList(true);},15000);document.addEventListener('visibilitychange',function(){if(!document.hidden)loadList();});
   </script>
 </body>
 </html>
