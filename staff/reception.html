@@ -544,6 +544,7 @@ function PreschoolFields_(prefix,children,anchor,adults){
       selectedPasses = q.seasonPassHolders || [];
       renderSelectedPasses();
       document.getElementById('seasonPassNos').value = q.seasonPassNos || '';
+      if(typeof window.onReceptionFormFilled_==='function')window.onReceptionFormFilled_(q);
       runPreview();
       runSeasonPassCheck();
     }
