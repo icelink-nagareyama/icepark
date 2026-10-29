@@ -108,11 +108,18 @@ var logoTemplate=document.createElement("template");logoTemplate.id="appLogoTemp
   function frontDeskResponseMeta_(action,result,started){
     if(!result||typeof result!=='object')return;
     if(typeof result._serverProcessingMs==='number'){
-      var timing={action:action,roundTripMs:Date.now()-started,serverMs:result._serverProcessingMs};
-      window.iceparkFrontDeskTiming=timing;console.info('frontdesk-performance',timing);delete result._serverProcessingMs;
+      var timing={action:action,roundTripMs:Date.now()-started,serverMs:result._serverProcessingMs,phases:result._serverPhases||{}};
+      window.iceparkFrontDeskTiming=timing;console.info('frontdesk-performance',timing);delete result._serverProcessingMs;delete result._serverPhases;
     }
     var id=result._backgroundOperationId;if(id){delete result._backgroundOperationId;scheduleFrontDeskBackground_(id);}
     if(action==='getStaffMutationStatus'&&result.result)frontDeskResponseMeta_(result.action||action,result.result,started);
+  }
+
+  function renderFrontDeskTiming_(container,action){
+    var t=window.iceparkFrontDeskTiming;if(!t||t.action!==action||!Number.isFinite(t.roundTripMs)||!Number.isFinite(t.serverMs))return;
+    var details=document.createElement('details'),summary=document.createElement('summary');details.className='frontdesk-timing';details.style.cssText='margin-top:12px;font-size:14px;color:var(--text-muted,#53687c);';summary.style.cssText='min-height:44px;display:flex;align-items:center;cursor:pointer;';summary.textContent='処理時間の内訳：全体 '+(t.roundTripMs/1000).toFixed(1)+'秒';details.appendChild(summary);
+    var rows=[['通信・起動など',Math.max(0,t.roundTripMs-t.serverMs)],['GAS内の合計',t.serverMs]],labels={prepare:'接続・準備',lock:'他の保存待ち',ledger:'操作記録の確認',validation:'料金・入場条件の確認',reception:'受付・売上の保存',admission:'入場・バンドの保存',completion:'保存結果の確定'};
+    Object.keys(labels).forEach(function(k){if(t.phases&&Number.isFinite(t.phases[k])&&t.phases[k]>=0)rows.push([labels[k],t.phases[k]]);});rows.forEach(function(row){var line=document.createElement('div');line.textContent=row[0]+'：'+(row[1]/1000).toFixed(1)+'秒';details.appendChild(line);});container.appendChild(details);
   }
 
   function staffRun(operation) {
@@ -124,6 +131,7 @@ var logoTemplate=document.createElement("template");logoTemplate.id="appLogoTemp
         var started=Date.now();
         var args = Array.prototype.slice.call(arguments);
         var mutations = ['confirmEditedReceptionAndAdmit','confirmReceptionAndAdmit','configureMidnightClose','confirmClosingBatchExit','sendTestLineNotification','issueTestReceptionTicket','issueWalkInTicket','confirmReceptionDetails','addAidRentalForGuest','returnAidRentalForGuest','callTicketManually','admitToIce','exitWristbandAndFinalize','exitTicketAndFinalize','markConsentAsPaper'];
+        if(['admitToIce','confirmReceptionAndAdmit','confirmEditedReceptionAndAdmit'].indexOf(action)!==-1)window.iceparkFrontDeskTiming=null;
         var foreground=mutations.indexOf(action)!==-1;if(foreground){frontDeskForegroundInFlight_++;frontDeskLastActivity_=Date.now();}
         var foregroundDone=false;function finishForeground(){if(foreground&&!foregroundDone){foregroundDone=true;frontDeskForegroundInFlight_=Math.max(0,frontDeskForegroundInFlight_-1);frontDeskLastActivity_=Date.now();}}
         var key = action + JSON.stringify(args);
